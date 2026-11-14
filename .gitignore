@@ -1,0 +1,8 @@
+bin/
+obj/
+.vs/
+*.user
+TestResults/
+/.local/
+# Benchmark evidence lives outside the repo (paths.dataRoot); never commit transcripts.
+*.transcript.jsonl

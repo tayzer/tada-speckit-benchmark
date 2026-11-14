@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>benchmark</AssemblyName>
+    <RootNamespace>Benchmark</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Benchmark.Tests" />
+  </ItemGroup>
+</Project>

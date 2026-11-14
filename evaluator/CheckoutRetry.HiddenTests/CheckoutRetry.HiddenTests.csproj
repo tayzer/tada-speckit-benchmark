@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    HIDDEN EVALUATION SUITE (DRAFT, pending benchmark-owner approval).
+    Never copied into an agent workspace. The evaluator copies it into
+    <evaluation clone>/tests/__HiddenEvaluation/ and builds it against the implementation under test.
+    Package versions come from the application's central package management (Directory.Packages.props).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CheckoutRetry.HiddenTests</RootNamespace>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS1591;NU1902;NU1903</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Web\Web.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="catalog.json;README.md" />
+  </ItemGroup>
+</Project>

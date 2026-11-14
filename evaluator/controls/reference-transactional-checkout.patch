@@ -1,0 +1,61 @@
+diff --git a/src/Web/Pages/Basket/Checkout.cshtml.cs b/src/Web/Pages/Basket/Checkout.cshtml.cs
+index ee54592..f76285e 100644
+--- a/src/Web/Pages/Basket/Checkout.cshtml.cs
++++ b/src/Web/Pages/Basket/Checkout.cshtml.cs
+@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
+ using Microsoft.eShopWeb.ApplicationCore.Entities.OrderAggregate;
+ using Microsoft.eShopWeb.ApplicationCore.Exceptions;
+ using Microsoft.eShopWeb.ApplicationCore.Interfaces;
++using Microsoft.EntityFrameworkCore;
++using Microsoft.eShopWeb.Infrastructure.Data;
+ using Microsoft.eShopWeb.Infrastructure.Identity;
+ using Microsoft.eShopWeb.Web.Interfaces;
+ 
+@@ -20,13 +22,16 @@ public class CheckoutModel : PageModel
+     private string? _username = null;
+     private readonly IBasketViewModelService _basketViewModelService;
+     private readonly IAppLogger<CheckoutModel> _logger;
++    private readonly CatalogContext _db;
+ 
+     public CheckoutModel(IBasketService basketService,
+         IBasketViewModelService basketViewModelService,
+         SignInManager<ApplicationUser> signInManager,
+         IOrderService orderService,
+-        IAppLogger<CheckoutModel> logger)
++        IAppLogger<CheckoutModel> logger,
++        CatalogContext db)
+     {
++        _db = db;
+         _basketService = basketService;
+         _signInManager = signInManager;
+         _orderService = orderService;
+@@ -54,8 +59,27 @@ public class CheckoutModel : PageModel
+ 
+             var updateModel = items.ToDictionary(b => b.Id.ToString(), b => b.Quantity);
+             await _basketService.SetQuantities(BasketModel.Id, updateModel);
+-            await _orderService.CreateOrderAsync(BasketModel.Id, new Address("123 Main St.", "Kent", "OH", "United States", "44240"));
+-            await _basketService.DeleteBasketAsync(BasketModel.Id);
++            // REFERENCE CONTROL: order creation and basket removal commit atomically; a concurrent duplicate
++            // loses the race on the basket delete and is rolled back.
++            await using var transaction = await _db.Database.BeginTransactionAsync();
++            try
++            {
++                await _orderService.CreateOrderAsync(BasketModel.Id, new Address("123 Main St.", "Kent", "OH", "United States", "44240"));
++                await _basketService.DeleteBasketAsync(BasketModel.Id);
++                await transaction.CommitAsync();
++            }
++            catch (Exception ex) when (ex is DbUpdateConcurrencyException or ArgumentNullException)
++            {
++                await transaction.RollbackAsync();
++                _logger.LogWarning("Duplicate checkout submission ignored; basket already checked out.");
++                return RedirectToPage("Success");
++            }
++        }
++        catch (EmptyBasketOnCheckoutException emptyBasketOnCheckoutException) when (items.Any())
++        {
++            // The submitted basket no longer exists: this is a retry of a checkout that already completed.
++            _logger.LogWarning(emptyBasketOnCheckoutException.Message);
++            return RedirectToPage("Success");
+         }
+         catch (EmptyBasketOnCheckoutException emptyBasketOnCheckoutException)
+         {

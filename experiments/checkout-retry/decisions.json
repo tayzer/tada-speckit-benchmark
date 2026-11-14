@@ -1,0 +1,95 @@
+{
+  "note": "Canonical answers to business questions either workflow may ask. Approved by the benchmark owner on 2026-11-14. Paste the answer text when a workflow asks, so both workflows receive identical text. Do not reveal hidden test details.",
+  "decisions": [
+    {
+      "id": "D1",
+      "topic": "Retry vs new purchase",
+      "question": "How do we tell a retry of the same checkout apart from a new, legitimate purchase?",
+      "answer": "A retry is a resubmission of the same checkout attempt: the customer submits the checkout they were already on (for example re-posting the same checkout page after a timeout, a double-click, or the browser resending the request). Once an order has been placed successfully, starting checkout again with a newly filled basket is a new purchase, even if it contains exactly the same items and quantities.",
+      "status": "approved",
+      "approvedBy": "benchmark owner (2026-11-14)",
+      "hiddenTests": [ "HT01", "HT06", "HT07" ]
+    },
+    {
+      "id": "D2",
+      "topic": "Outcome shown for a retried checkout",
+      "question": "What should the customer see when they retry a checkout whose order was already created?",
+      "answer": "They should not get an error and must not be charged twice. Showing the normal order confirmation (success page) for the existing order is the preferred outcome.",
+      "status": "approved",
+      "approvedBy": "benchmark owner (2026-11-14)",
+      "hiddenTests": [ "HT12" ]
+    },
+    {
+      "id": "D3",
+      "topic": "Simultaneous duplicate submissions",
+      "question": "If the same checkout is submitted twice at the same moment (double-click, two tabs), what should happen?",
+      "answer": "Exactly one order must be created. The other submission must not fail with a server error; it should end on a normal page (confirmation or basket).",
+      "status": "approved",
+      "approvedBy": "benchmark owner (2026-11-14)",
+      "hiddenTests": [ "HT02", "HT03" ]
+    },
+    {
+      "id": "D4",
+      "topic": "Failure before the order is saved",
+      "question": "If checkout fails before the order is saved, should the customer be able to retry?",
+      "answer": "Yes. Nothing should be lost: the basket stays as it was and a retry should place exactly one order.",
+      "status": "approved",
+      "approvedBy": "benchmark owner (2026-11-14)",
+      "hiddenTests": [ "HT04" ]
+    },
+    {
+      "id": "D5",
+      "topic": "Failure after the order is saved but before the customer is told",
+      "question": "If the order was saved but something failed afterwards (so the customer saw an error or a timeout), what should a retry do?",
+      "answer": "The customer must end up with exactly one order for that checkout. Either the whole checkout succeeds or fails as a unit, or the retry recognises the order that already exists; both are acceptable.",
+      "status": "approved",
+      "approvedBy": "benchmark owner (2026-11-14)",
+      "hiddenTests": [ "HT05" ]
+    },
+    {
+      "id": "D6",
+      "topic": "Identical repeat purchases",
+      "question": "Should we block a second order that has the same items as a recent order from the same customer?",
+      "answer": "No. Customers legitimately reorder the same items, sometimes within minutes. Do not block or merge orders based on content or timing alone.",
+      "status": "approved",
+      "approvedBy": "benchmark owner (2026-11-14)",
+      "hiddenTests": [ "HT06", "HT07" ]
+    },
+    {
+      "id": "D7",
+      "topic": "Retry from a freshly reloaded checkout page",
+      "question": "If the first submission is still processing and the customer reloads the checkout page and submits again, is that a retry or a new order?",
+      "answer": "It is a retry of the same checkout. The first submission has not finished, so that basket has not been ordered yet; submitting it again from a reloaded checkout page must not create a second order. Only after an order has been placed does a newly filled basket count as a new purchase.",
+      "status": "approved",
+      "approvedBy": "benchmark owner (answer chosen by Claude at the owner's request, 2026-11-14)",
+      "hiddenTests": [ "HT08" ]
+    },
+    {
+      "id": "D8",
+      "topic": "Scope",
+      "question": "Which checkout entry points are in scope?",
+      "answer": "The customer-facing web checkout (Basket > Checkout > Pay Now). There is no separate order-placing API today.",
+      "status": "approved",
+      "approvedBy": "benchmark owner (2026-11-14)",
+      "hiddenTests": []
+    },
+    {
+      "id": "D9",
+      "topic": "Database changes",
+      "question": "Are database schema changes acceptable?",
+      "answer": "Yes, if they are delivered as an Entity Framework migration consistent with the existing migrations and the existing data remains valid.",
+      "status": "approved",
+      "approvedBy": "benchmark owner (2026-11-14)",
+      "hiddenTests": []
+    },
+    {
+      "id": "D10",
+      "topic": "How long protection must last",
+      "question": "For how long after the first attempt must a retry be recognised as the same checkout?",
+      "answer": "At least for the time a customer could reasonably retry after a timeout: minutes to hours. Retries are expected within the same browser session.",
+      "status": "approved",
+      "approvedBy": "benchmark owner (2026-11-14)",
+      "hiddenTests": []
+    }
+  ]
+}

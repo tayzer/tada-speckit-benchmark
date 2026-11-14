@@ -1,0 +1,11 @@
+{
+  "source": "Anthropic first-party list prices (claude-api skill model table, cached 2026-11-03). Cache write = 1.25x (5m) / 2x (1h) base input.",
+  "retrievedOn": "2026-11-13",
+  "note": "Model-equivalent estimates only, not subscription expenditure. Haiku 5.5 rates were cross-checked exactly against a captured Claude Code costUSD (0.00157153). Verify the others before the official run.",
+  "models": {
+    "claude-opus-5-5":   { "inputPerMTok": 4.00, "outputPerMTok": 20.00, "cacheReadPerMTok": 0.20, "cacheWrite5mPerMTok": 5.00, "cacheWrite1hPerMTok": 8.00 },
+    "claude-sonnet-5-5": { "inputPerMTok": 2.00, "outputPerMTok": 10.00, "cacheReadPerMTok": 0.10, "cacheWrite5mPerMTok": 2.50, "cacheWrite1hPerMTok": 4.00 },
+    "claude-haiku-5-5":  { "inputPerMTok": 0.10, "outputPerMTok": 0.50,  "cacheReadPerMTok": 0.01, "cacheWrite5mPerMTok": 0.125, "cacheWrite1hPerMTok": 0.20 },
+    "claude-fable-5-2":  { "inputPerMTok": 8.00, "outputPerMTok": 40.00, "cacheReadPerMTok": 0.20, "cacheWrite5mPerMTok": 10.00, "cacheWrite1hPerMTok": 16.00 }
+  }
+}

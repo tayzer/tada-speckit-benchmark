@@ -1,0 +1,18 @@
+{
+  "status": "DRAFT — proposed by the harness author, not approved by the benchmark owner",
+  "tests": [
+    { "id": "HT01_ResubmitAfterCompletedCheckout_NoDuplicateOrder", "category": "repeated-requests", "expectation": "Resubmitting the same checkout form after it completed creates no second order.", "critical": false, "decisions": [ "D1" ] },
+    { "id": "HT02_ConcurrentDuplicateSubmissions_CreateExactlyOneOrder", "category": "concurrent-requests", "expectation": "Two overlapping submissions of the same checkout create exactly one order.", "critical": true, "decisions": [ "D3" ] },
+    { "id": "HT03_RetryAfterClientTimeout_CreatesExactlyOneOrder", "category": "retry-after-timeout", "expectation": "Client times out while the server is still processing; the retry results in exactly one order and no server error.", "critical": true, "decisions": [ "D3" ] },
+    { "id": "HT04_FailureBeforePersistence_RetryCreatesExactlyOneOrder", "category": "failure-before-persistence", "expectation": "If saving the order fails, nothing is persisted and a retry places exactly one order.", "critical": false, "decisions": [ "D4" ] },
+    { "id": "HT05_FailureAfterPersistence_RetryDoesNotDuplicate", "category": "failure-after-persistence", "expectation": "If a failure happens after the order insert but before the customer is told, a retry leaves exactly one order.", "critical": true, "decisions": [ "D5" ] },
+    { "id": "HT06_LegitimateSubsequentPurchase_SameItems_CreatesSecondOrder", "category": "legitimate-subsequent-purchase", "expectation": "After a completed order, a new checkout with the same items creates a second order.", "critical": true, "decisions": [ "D1", "D6" ] },
+    { "id": "HT07_LegitimateSubsequentPurchase_DifferentItems_CreatesSecondOrder", "category": "legitimate-subsequent-purchase", "expectation": "After a completed order, a new checkout with different items creates a second order.", "critical": false, "decisions": [ "D6" ] },
+    { "id": "HT08_RetryFromFreshCheckoutPageWhileFirstInFlight", "category": "retry-after-timeout", "expectation": "D7: reloading the checkout page while the first submission is still in flight and submitting again is a retry; exactly one order.", "critical": false, "decisions": [ "D7" ] },
+    { "id": "HT09_Compatibility_CheckoutHappyPath", "category": "compatibility", "expectation": "Normal checkout still lands on the confirmation page, persists one order with the basket's units and empties the basket.", "critical": true, "decisions": [] },
+    { "id": "HT10_Compatibility_EmptyBasketCheckout_CreatesNoOrder", "category": "compatibility", "expectation": "Checkout with an empty basket creates no order and no server error.", "critical": false, "decisions": [] },
+    { "id": "HT11_DifferentCustomersCheckingOutConcurrently_EachGetsOneOrder", "category": "concurrent-requests", "expectation": "Duplicate protection does not block or merge different customers' concurrent checkouts.", "critical": false, "decisions": [] },
+    { "id": "HT12_RetryOfCompletedCheckout_ShowsConfirmation", "category": "repeated-requests", "expectation": "Retrying a completed checkout shows the order confirmation rather than an error or empty basket.", "critical": false, "decisions": [ "D2" ] },
+    { "id": "HT13_ConcurrentDuplicateSubmissions_NoServerError", "category": "concurrent-requests", "expectation": "Neither of two overlapping submissions ends in a server error.", "critical": false, "decisions": [ "D3" ] }
+  ]
+}

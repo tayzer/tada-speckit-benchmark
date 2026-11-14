@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "checkout-retry",
+  "description": "Duplicate orders when checkout is retried after a timeout (eShopOnWeb). TADA vs GitHub Spec Kit, both on Claude Code CLI.",
+  "application": {
+    "name": "eShopOnWeb",
+    "repository": "https://github.com/NimblePros/eShopOnWeb",
+    "commit": "f21d6233b851897371c25c5e7ffa67bb8552dba8",
+    "compatibilityPatches": [],
+    "solution": "eShopOnWeb.slnx",
+    "testProjects": [
+      "tests/UnitTests/UnitTests.csproj",
+      "tests/IntegrationTests/IntegrationTests.csproj",
+      "tests/FunctionalTests/FunctionalTests.csproj",
+      "tests/PublicApiIntegrationTests/PublicApiIntegrationTests.csproj"
+    ],
+    "excludedTestProjects": [
+      {
+        "path": "tests/EndToEndTests/EndToEndTests.csproj",
+        "reason": "Playwright browser tests: need installed browsers and a separately running application; not part of the reproducible baseline."
+      }
+    ],
+    "requiredTools": [ "dotnet", "git" ]
+  },
+  "task": {
+    "promptFile": "task.md",
+    "promptSha256": "cf5ea98a9aa3a80a1f39c8b0b52f7b20619188d1a3643db46917bb7a1d2b5b03"
+  },
+  "agent": {
+    "host": "claude-code-cli",
+    "claudeExecutable": "claude",
+    "cliVersion": "2.1.325",
+    "model": "claude-opus-5-5",
+    "effort": "high",
+    "fallbackModel": null,
+    "permissionMode": "acceptEdits",
+    "permissionPrompts": "none",
+    "settingSources": "project,local",
+    "strictMcpConfig": true,
+    "allowedTools": [
+      "Bash(dotnet restore *)", "Bash(dotnet build *)", "Bash(dotnet test *)",
+      "Bash(git status *)", "Bash(git diff *)", "Bash(git log *)", "Bash(git show *)",
+      "PowerShell(dotnet restore *)", "PowerShell(dotnet build *)", "PowerShell(dotnet test *)",
+      "PowerShell(git status *)", "PowerShell(git diff *)", "PowerShell(git log *)", "PowerShell(git show *)"
+    ],
+    "disallowedTools": [ "WebFetch", "WebSearch" ],
+    "managedInvocationTimeoutMinutes": 240,
+    "environment": {},
+    "extraForbiddenRoots": []
+  },
+  "workflows": [
+    {
+      "id": "speckit",
+      "displayName": "GitHub Spec Kit",
+      "kind": "speckit",
+      "version": "v1.4.0 @ 0019fa14d12f45edabc2cc3176c9168a68bd0f97 (specify-cli 1.4.0)",
+      "initialMessageTemplate": "{prompt}",
+      "setupCommand": [
+        "uvx", "--from", "git+https://github.com/github/spec-kit.git@0019fa14d12f45edabc2cc3176c9168a68bd0f97",
+        "specify", "init", "--here", "--force", "--non-interactive", "--integration", "claude", "--script", "ps", "--ignore-agent-tools"
+      ],
+      "expectedFiles": [
+        ".specify/memory/constitution.md",
+        ".specify/integration.json",
+        ".claude/skills/speckit-specify/SKILL.md",
+        ".claude/skills/speckit-plan/SKILL.md",
+        ".claude/skills/speckit-tasks/SKILL.md",
+        ".claude/skills/speckit-implement/SKILL.md"
+      ],
+      "expectedMarkers": {
+        "plugins": [],
+        "skills": [ "speckit-specify", "speckit-clarify", "speckit-plan", "speckit-tasks", "speckit-implement" ]
+      },
+      "forbiddenMarkers": [ "tada" ],
+      "requiredTools": [ "uvx" ],
+      "artifactGlobs": [ ".specify/**", "specs/**" ]
+    },
+    {
+      "id": "tada",
+      "displayName": "TADA",
+      "kind": "tada",
+      "version": "42f1429b0458c5c877b3bf5b093d7f8a10b760a3 (plugin 0.1.0-alpha.13, unreleased source build)",
+      "initialMessageTemplate": "{prompt}",
+      "setupCommand": [],
+      "pluginPath": "../BenchmarkData/tada-plugin-build/tada",
+      "pluginSha256": "b2199946ff44fc810611c466c09a65ede9d4fc3add4e486554e8abf92d6dd50d",
+      "expectedFiles": [],
+      "expectedMarkers": {
+        "plugins": [ "tada" ],
+        "skills": [ "tada:tada" ]
+      },
+      "forbiddenMarkers": [ "speckit", ".specify" ],
+      "requiredTools": [ "pwsh" ],
+      "artifactGlobs": [ ".tada/**", "features/**", "tests/Acceptance/**", "tada.json" ]
+    }
+  ],
+  "evaluation": {
+    "hiddenSuite": "evaluator/CheckoutRetry.HiddenTests",
+    "status": "approved",
+    "approvedBy": "benchmark owner",
+    "approvedAt": "2026-11-14T13:30:00Z",
+    "approvedSuiteSha256": "380e545903b5b8b77d52435030dc3a6faf80ee877cdba9e9ee5126f16511540f",
+    "testTimeoutMinutes": 30,
+    "hiddenSuiteDestination": "tests/__HiddenEvaluation",
+    "controls": [ "evaluator/controls/reference-transactional-checkout.patch", "evaluator/controls/seeded-overblocking.patch" ]
+  },
+  "paths": {
+    "dataRoot": "../BenchmarkData"
+  },
+  "evidence": {
+    "redactSecrets": true,
+    "retention": "Kept locally under the data root until the operator deletes it. Never uploaded by the harness. Claude Code deletes its own transcripts after cleanupPeriodDays (default 30), so `benchmark finish` imports them immediately."
+  },
+  "pricingFile": "pricing/models.json",
+  "decisionsFile": "decisions.json"
+}
