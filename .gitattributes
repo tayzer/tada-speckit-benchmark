@@ -1,0 +1,3 @@
+# Keep LF everywhere: the approved hidden-suite and TADA-plugin hashes are byte-exact,
+# and core.autocrlf=true would otherwise rewrite files to CRLF on checkout.
+* text=auto eol=lf
