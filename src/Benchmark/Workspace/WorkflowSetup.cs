@@ -41,7 +41,7 @@ public static class WorkflowSetup
             case WorkflowKind.Tada:
                 {
                     var source = c.ResolveHarnessPath(w.PluginPath!);
-                    if (!Directory.Exists(source)) throw new BenchmarkException($"TADA plugin directory not found: {source}. Build it from the pinned commit (scripts/Build-TadaPlugin.ps1) and set pluginPath.");
+                    if (!Directory.Exists(source)) throw new BenchmarkException($"TADA plugin directory not found: {source}. Fetch the pinned release (scripts/Get-TadaRelease.ps1) and set pluginPath.");
                     var hash = Fs.Sha256Directory(source);
                     record.PluginSha256 = hash;
                     if (!hash.Equals(w.PluginSha256, StringComparison.OrdinalIgnoreCase))

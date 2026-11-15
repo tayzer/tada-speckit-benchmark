@@ -40,7 +40,7 @@ public static class Doctor
             if (w.Kind == WorkflowKind.Tada)
             {
                 var p = w.PluginPath is null ? null : c.ResolveHarnessPath(w.PluginPath);
-                if (p is null || !Directory.Exists(p)) Report(false, "TADA plugin", $"not built/available at {p}. See scripts/Build-TadaPlugin.ps1.");
+                if (p is null || !Directory.Exists(p)) Report(false, "TADA plugin", $"not built/available at {p}. See scripts/Get-TadaRelease.ps1.");
                 else
                 {
                     var hash = Fs.Sha256Directory(p);

@@ -62,16 +62,13 @@
 
 ## TADA
 
-- **Pinned commit.** `42f1429b0458c5c877b3bf5b093d7f8a10b760a3` is main HEAD at 2026-11-13. Its plugin manifest declares `0.1.0-alpha.13`, which is **unreleased**.
-- **The latest release cannot be used.** The latest release, `v0.1.0-alpha.12` (`a5b4570`), has **no `.claude-plugin/` manifest**: its release notes describe Codex installation only. Claude Code packaging exists only in source after that release. The unreleased development version therefore is **not** the published release, and the report records which one ran.
+- **Pinned release.** `v0.1.0-alpha.13.105` (source `bd11c12a55ec8079cbde1f50255bd0a078fdc7aa`, published 2026-11-13 19:38 UTC as a prerelease, the latest at 2026-11-14). The harness uses the official `TADA-plugin-0.1.0-alpha.13.105.zip` asset, SHA-256 `dbae497d…c543`, which matches the release `SHA256SUMS`. The extracted directory hash is pinned in `experiment.json`.
+- **History.** The harness first pinned unreleased source `42f1429` (plugin `0.1.0-alpha.13`), because the then-latest release alpha.12 had no Claude Code packaging. alpha.13.105 was published later the same day. Between the two commits there are **no changes under `src/` or `tests/`** (Tada.Cli is the same code). The agent-facing differences are two wording lines in `SKILL.md`, which now name Cursor, and a version comparison in `Initialize-Tada.ps1` that only applies when an older Tada.Cli is already installed in the repository. TADA runs made with the source build record `pluginSha256 b2199946…` and are excluded from the default `compare`.
 - **Packaging.**
   - The plugin has **one skill** (`tada:tada`) and no commands, agents, hooks or MCP servers.
   - The skill is auto-selected for ordinary requests.
-  - The plugin needs a bundled verifier feed, the `Tada.Cli` nupkg. A raw `plugins/tada` folder from git is therefore incomplete, and the plugin must be **built**.
-- **Building the plugin.**
-  - Build steps: `dotnet pack` followed by `scripts/New-TadaPlugin.ps1`.
-  - Build requirements: **PowerShell 7** and SDK 10.0.403. The build also downloads Zig 0.15.2 into the TADA checkout.
-  - `scripts/Build-TadaPlugin.ps1` wraps these steps. **It has not been run** because `pwsh` is missing and it executes TADA's own build scripts.
+  - The plugin needs a bundled verifier feed, the `Tada.Cli` nupkg. A raw `plugins/tada` folder from git is therefore incomplete. The release zip includes it (`feed/Tada.Cli.0.1.0-alpha.13.105.nupkg`), so no build is needed.
+  - `scripts/Get-TadaRelease.ps1` downloads the zip, verifies it and extracts it. The zip also contains marketplace and Codex/Cursor manifests; `--plugin-dir` ignores them.
 - **Activation.** The harness uses the documented per-session form `claude --plugin-dir <extracted plugin>`. It does not use a marketplace install, which would cache the plugin under `~/.claude/plugins`.
 - **Runtime requirement: PowerShell 7.** The skill tells the agent to run `pwsh -NoProfile -File Initialize-Tada.ps1 …`.
   - **Without `pwsh` on PATH, TADA cannot initialise.** Install PowerShell 7 before the benchmark.

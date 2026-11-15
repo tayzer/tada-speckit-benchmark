@@ -5,7 +5,7 @@ A small, transparent harness for comparing two AI-assisted development workflows
 are scored by an **independent hidden evaluator** that neither workflow can see.
 
 - Workflow A: [GitHub Spec Kit](https://github.com/github/spec-kit) `v1.4.0` (`0019fa14`)
-- Workflow B: [TADA](https://github.com/tayzer/TADA) `42f1429b` (0.1.0-alpha.13, an **unreleased** source build; the published alpha.12 has no Claude Code packaging)
+- Workflow B: [TADA](https://github.com/tayzer/TADA) `v0.1.0-alpha.13.105` (`bd11c12a`, published prerelease plugin zip, checksum-pinned)
 - App: [NimblePros/eShopOnWeb](https://github.com/NimblePros/eShopOnWeb) `f21d6233b851897371c25c5e7ffa67bb8552dba8` (verified)
 - Task (identical for both, SHA-256 pinned): *“Customers have reported duplicate orders when checkout is retried after a timeout. Please fix this while ensuring customers can still make legitimate subsequent purchases.”*
 
@@ -22,7 +22,7 @@ experiments/checkout-retry/    experiment.json, task.md (the prompt), decisions.
 evaluator/                     hidden behavioural suite (DRAFT) + control patches — never copied to workspaces
 pricing/models.json            model-equivalent pricing (estimates only)
 docs/                          compatibility, telemetry, isolation, rubric, operator runbook
-scripts/Build-TadaPlugin.ps1   builds the pinned TADA plugin (needs PowerShell 7; not yet run)
+scripts/Get-TadaRelease.ps1    downloads and checksum-verifies the pinned TADA release plugin
 bench.ps1                      wrapper: builds the harness when sources change, then runs it
 ```
 

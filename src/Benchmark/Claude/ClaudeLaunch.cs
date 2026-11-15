@@ -84,8 +84,10 @@ public static class ClaudeLaunch
         // Hash with run-specific absolute paths replaced, so equivalent policies compare equal across arms.
         var templated = settings.ToJsonString()
             .Replace(PermissionPath(workspace).TrimEnd('*', '/'), "<WORKSPACE>", StringComparison.OrdinalIgnoreCase);
-        foreach (var root in forbiddenRoots.Where(Path.IsPathRooted))
-            templated = templated.Replace(PermissionPath(root).TrimEnd('*', '/'), "<FORBIDDEN>", StringComparison.OrdinalIgnoreCase);
+        // Replace whole rule paths (with the trailing "/**"), longest first: a bare prefix replace would turn
+        // D:\Dev\BenchmarkData\... into "<FORBIDDEN>Data/..." when D:\Dev\Benchmark is also forbidden.
+        foreach (var p in forbiddenRoots.Where(Path.IsPathRooted).Select(PermissionPath).OrderByDescending(p => p.Length))
+            templated = templated.Replace(p, "<FORBIDDEN>/**", StringComparison.OrdinalIgnoreCase);
         var policyHash = Fs.Sha256Text(agent.PermissionMode + "|" + agent.PermissionPrompts + "|" + NormaliseForbiddenCount(templated));
         return (settings, policyHash);
     }

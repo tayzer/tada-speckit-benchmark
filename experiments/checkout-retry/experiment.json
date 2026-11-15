@@ -54,7 +54,7 @@
       "displayName": "GitHub Spec Kit",
       "kind": "speckit",
       "version": "v1.4.0 @ 0019fa14d12f45edabc2cc3176c9168a68bd0f97 (specify-cli 1.4.0)",
-      "initialMessageTemplate": "{prompt}",
+      "initialMessageTemplate": "/speckit-specify {prompt}",
       "setupCommand": [
         "uvx", "--from", "git+https://github.com/github/spec-kit.git@0019fa14d12f45edabc2cc3176c9168a68bd0f97",
         "specify", "init", "--here", "--force", "--non-interactive", "--integration", "claude", "--script", "ps", "--ignore-agent-tools"
@@ -79,11 +79,11 @@
       "id": "tada",
       "displayName": "TADA",
       "kind": "tada",
-      "version": "42f1429b0458c5c877b3bf5b093d7f8a10b760a3 (plugin 0.1.0-alpha.13, unreleased source build)",
+      "version": "v0.1.0-alpha.13.105 @ bd11c12a55ec8079cbde1f50255bd0a078fdc7aa (published prerelease, TADA-plugin-0.1.0-alpha.13.105.zip sha256 dbae497d0c61362c0ef017c03c81a23942f763d55bd626a0ca3e314e2782c543)",
       "initialMessageTemplate": "{prompt}",
       "setupCommand": [],
-      "pluginPath": "../BenchmarkData/tada-plugin-build/tada",
-      "pluginSha256": "b2199946ff44fc810611c466c09a65ede9d4fc3add4e486554e8abf92d6dd50d",
+      "pluginPath": "../BenchmarkData/tada-release-0.1.0-alpha.13.105/tada",
+      "pluginSha256": "c7bff8f2115c0d009376472f89651300e6b9c9c579bb174c09f6876a55ac8eae",
       "expectedFiles": [],
       "expectedMarkers": {
         "plugins": [ "tada" ],

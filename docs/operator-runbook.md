@@ -26,8 +26,10 @@ Press **l** instead of **f** to stop for now; `.\bench.ps1 resume <run-id>` pick
 
 Work exactly as you would normally with that workflow.
 
-- **Spec Kit:** use its commands (`/speckit-specify`, `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`,
-  `/speckit-implement` ...). They are counted as slash commands automatically.
+- **Spec Kit:** the session opens with `/speckit-specify <task>` already sent. When it finishes, continue with
+  the documented commands yourself (`/speckit-clarify` if it asks, then `/speckit-plan`, `/speckit-tasks`,
+  `/speckit-implement`). They are counted as slash commands automatically. Do not just say "go ahead": if the
+  workflow's commands are never run, the arm is plain Claude Code and the run is not a Spec Kit run.
 - **TADA:** let the skill drive. Approve protected baselines yourself when you agree. Run the approval inside the
   session as `! dotnet tool run tada baseline approve ...` so it appears in `chat.md`; a separate terminal works
   but leaves no trace.
@@ -68,8 +70,8 @@ reading you do while the agent is still working.
    `experiment.json`, and the hidden suite in `evaluator/` (set `evaluation.status`, `approvedBy`,
    `approvedSuiteSha256`; `doctor` prints the hash). Until then results are labelled DRAFT.
 2. Install PowerShell 7 (`winget install Microsoft.PowerShell`). TADA's skill calls `pwsh`.
-3. Build the TADA plugin: `pwsh -File scripts\Build-TadaPlugin.ps1` (runs TADA's build, downloads Zig; review it
-   first). Copy the hash `doctor` reports into `workflows[tada].pluginSha256`.
+3. Fetch the TADA plugin: `pwsh -File scripts\Get-TadaRelease.ps1` (downloads the pinned release zip and checks
+   its SHA-256). `doctor` must report the extracted directory hash equal to `workflows[tada].pluginSha256`.
 4. Commit this repository so each run records the exact harness version.
 5. `.\bench.ps1 doctor` must report no blocking problems.
 

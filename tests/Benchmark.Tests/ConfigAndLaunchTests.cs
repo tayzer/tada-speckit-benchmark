@@ -121,6 +121,20 @@ public sealed class ClaudeLaunchTests
     }
 
     [Fact]
+    public void Permission_policy_hash_ignores_sibling_workspaces_when_harness_root_is_a_path_prefix()
+    {
+        // Real layout: harness D:\Dev\Benchmark is a string prefix of data root D:\Dev\BenchmarkData.
+        var c = TestSupport.RealConfig();
+        var (_, h1) = ClaudeLaunch.BuildRunSettings(c.Agent,
+            [@"D:\Dev\Benchmark", @"D:\Dev\BenchmarkData\runs", @"D:\Dev\BenchmarkData\workspaces\old-1"],
+            @"D:\Dev\BenchmarkData\workspaces\speckit-1\app");
+        var (_, h2) = ClaudeLaunch.BuildRunSettings(c.Agent,
+            [@"D:\Dev\Benchmark", @"D:\Dev\BenchmarkData\runs", @"D:\Dev\BenchmarkData\workspaces\old-1", @"D:\Dev\BenchmarkData\workspaces\speckit-1"],
+            @"D:\Dev\BenchmarkData\workspaces\tada-1\app");
+        Assert.Equal(h1, h2);
+    }
+
+    [Fact]
     public void Agent_environment_clears_effort_override_and_isolates_nuget()
     {
         var env = ClaudeLaunch.AgentEnvironment(new AgentConfig(), @"D:\Data\workspaces\r\nuget");
@@ -234,5 +248,26 @@ public sealed class GitSnapshotTests
         Assert.Contains(changes.Files, f => f.Path == "a.txt" && f.Status == "M" && !f.IsTest);
         Assert.Contains(changes.Files, f => f.Path == "tests/X/NewTests.cs" && f.Status == "A" && f.IsTest);
         Assert.DoesNotContain(changes.Files, f => f.Path.StartsWith("bin/", StringComparison.Ordinal));
+    }
+}
+
+public sealed class ComparisonPinTests
+{
+    [Fact]
+    public void Default_comparison_excludes_runs_made_with_an_older_workflow_pin()
+    {
+        var c = TestSupport.RealConfig();
+        var tada = c.Workflows.Single(w => w.Id == "tada");
+        Benchmark.Runs.RunRecord Run(string version, string? hash) => new()
+        {
+            WorkflowId = "tada",
+            Setup = new Benchmark.Runs.WorkflowSetupRecord { WorkflowId = "tada", Version = version, PluginSha256 = hash },
+        };
+
+        Assert.True(Benchmark.Cli.SimpleRun.MatchesCurrentPin(c, Run(tada.Version, tada.PluginSha256)));
+        Assert.False(Benchmark.Cli.SimpleRun.MatchesCurrentPin(c, Run(
+            "42f1429b0458c5c877b3bf5b093d7f8a10b760a3 (plugin 0.1.0-alpha.13, unreleased source build)",
+            "b2199946ff44fc810611c466c09a65ede9d4fc3add4e486554e8abf92d6dd50d")));
+        Assert.False(Benchmark.Cli.SimpleRun.MatchesCurrentPin(c, Run(tada.Version, "b2199946ff44fc810611c466c09a65ede9d4fc3add4e486554e8abf92d6dd50d")));
     }
 }

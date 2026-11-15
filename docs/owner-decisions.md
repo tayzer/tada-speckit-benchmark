@@ -47,9 +47,9 @@ None of these has been decided on your behalf. The values currently in the confi
    - **(a)** Keep `{prompt}` and let the operator issue the documented commands afterwards. Each command is logged as a `workflow-command`.
    - **(b)** Set Spec Kit's `initialMessageTemplate` to `"/speckit-specify {prompt}"`. This is recorded as a deviation.
 
-   The current configuration uses (a).
-2. **TADA version.** TADA is evaluated from the **unreleased** commit `42f1429` (plugin 0.1.0-alpha.13). The published alpha.12 has no Claude Code packaging. Accept, or wait for a release?
-3. **TADA plugin build.** It requires installing **PowerShell 7** and running TADA's build scripts, which download Zig. Approve both.
+   Resolved 2026-11-14: **(b)**. The pilot under (a) never ran a Spec Kit command (the agent coded straight from the prompt), so the arm was not exercising Spec Kit. Every Spec Kit run records the template as a deviation.
+2. **TADA version.** Resolved 2026-11-14: re-pinned to the published prerelease `v0.1.0-alpha.13.105` after the owner flagged that the source build (`42f1429`, 0.1.0-alpha.13) was not the latest. See docs/compatibility.md for the diff between the two.
+3. **TADA plugin build.** Superseded: the release zip is used, so no build. PowerShell 7 is still needed at runtime.
 4. **Execution mode.** Choose the official mode. Interactive (Mode A) is recommended because both workflows have human approval gates.
 
 ## E. Experiment design

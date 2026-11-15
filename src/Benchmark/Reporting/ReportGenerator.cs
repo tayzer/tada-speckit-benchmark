@@ -76,9 +76,12 @@ public static class ReportGenerator
         foreach (var g in metrics.GroupBy(m => m.WorkflowId))
         {
             var w = c.Workflows.FirstOrDefault(x => x.Id == g.Key);
+            // Label with the version the runs actually used (recorded at setup), not the current pin.
+            var recorded = runs.Where(r => r.WorkflowId == g.Key).Select(r => r.Setup.Version).Where(v => !string.IsNullOrEmpty(v)).Distinct().ToList();
+            var version = recorded.Count switch { 0 => w?.Version ?? "", 1 => recorded[0], _ => "MIXED: " + string.Join(" | ", recorded) };
             report.Workflows.Add(new WorkflowAggregate
             {
-                WorkflowId = g.Key, DisplayName = w?.DisplayName ?? g.Key, Version = w?.Version ?? "", Runs = g.Count(),
+                WorkflowId = g.Key, DisplayName = w?.DisplayName ?? g.Key, Version = version, Runs = g.Count(),
                 Stats = NumericMetrics.ToDictionary(x => x.Key, x => Stat.Of(g.Select(x.Get))),
             });
         }

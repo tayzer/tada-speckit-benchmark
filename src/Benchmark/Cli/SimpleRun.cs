@@ -121,6 +121,15 @@ public static class SimpleRun
         var runs = runIds is null
             ? store.All().Where(r => r.ExperimentId == c.ExperimentId && r.Status is RunStatus.Finished or RunStatus.Sealed).ToList()
             : runIds.Select(store.Load).ToList();
+        if (runIds is null)
+        {
+            // Default comparison pools only runs made with the currently pinned workflow version, so a re-pin
+            // never mixes old and new versions under the new version's label. Pass --runs to compare explicitly.
+            var stale = runs.Where(r => !MatchesCurrentPin(c, r)).ToList();
+            foreach (var r in stale)
+                Console.WriteLine($"Skipping {r.RunId}: made with {r.WorkflowId} '{r.Setup.Version}', current pin is '{c.Workflows.FirstOrDefault(w => w.Id == r.WorkflowId)?.Version}'.");
+            runs = runs.Except(stale).ToList();
+        }
         var report = ReportGenerator.Build(c, store, runs, await WorkspaceManager.HarnessCommitAsync(c.HarnessRoot));
         var markdown = ReportGenerator.Markdown(report);
         var dirs = outDir is not null ? [outDir] : new[] { Path.Combine(store.ReportsRoot, "latest"), Path.Combine(store.ReportsRoot, report.ReportId) };
@@ -131,5 +140,14 @@ public static class SimpleRun
             Fs.WriteAtomic(Path.Combine(d, "comparison.md"), markdown);
         }
         return Path.Combine(dirs[0], "comparison.md");
+    }
+
+    internal static bool MatchesCurrentPin(ExperimentConfig c, RunRecord r)
+    {
+        var w = c.Workflows.FirstOrDefault(x => x.Id == r.WorkflowId);
+        if (w is null) return false;
+        if (r.Synthetic || string.IsNullOrEmpty(r.Setup.Version)) return true;
+        if (r.Setup.Version != w.Version) return false;
+        return w.PluginSha256 is null || string.Equals(r.Setup.PluginSha256, w.PluginSha256, StringComparison.OrdinalIgnoreCase);
     }
 }

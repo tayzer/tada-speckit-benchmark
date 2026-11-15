@@ -281,7 +281,12 @@ public static class Program
 
             case "compare":
                 {
-                    var ids = args.Get("runs")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    // PowerShell passes an unquoted `--runs a,b` as two arguments ("a" "b"), so extra positional
+                    // run ids after `compare` are accepted too.
+                    var runs = args.Get("runs");
+                    var ids = runs is null ? null : runs.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Concat(args.Positional.Skip(1)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                    if (runs is null && args.Positional.Count > 1) throw new BenchmarkException("Give run ids with --runs, e.g. `bench compare --runs 'a,b'`.");
                     Console.WriteLine("Report: " + await SimpleRun.WriteComparisonAsync(config, store, ids, args.Get("out")));
                     return 0;
                 }
