@@ -56,4 +56,10 @@ None of these has been decided on your behalf. The values currently in the confi
 
 1. Number of repetitions per workflow. One per workflow is a demonstration only.
 2. The order of arms (alternate or randomise), and whether the same operator runs both arms.
-3. Engineering-quality reviewer(s), and whether to blind the reviews.
+3. Engineering-quality reviewer(s), and whether to blind the reviews. 2026-11-16: the owner chose an independent AI review (docs/ai-review.md). **Pending approval of the protocol:**
+   - the three files in `experiments/checkout-retry/ai-review/`;
+   - the reviewers (default `claude-opus-5-5` and `claude-sonnet-5-5`, both high effort; another model family is not available through Claude Code);
+   - two passes, with the presentation order swapped;
+   - the exclude/collapse filters, in particular that product-affecting build changes stay visible even though they reveal TADA.
+
+   Approve by setting `aiReview.status`, `approvedBy`, `approvedAt` and `approvedProtocolSha256` (printed by `doctor`).

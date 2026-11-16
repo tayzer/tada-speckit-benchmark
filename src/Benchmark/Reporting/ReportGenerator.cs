@@ -30,6 +30,8 @@ public sealed class ComparisonReport
     public List<RunMetrics> Runs { get; set; } = [];
     public List<string> HiddenTests { get; set; } = [];
     public List<string> Limitations { get; set; } = [];
+    /// <summary>Latest independent AI review set covering the compared runs (docs/ai-review.md).</summary>
+    public List<Review.AiReviewSummary> AiReviews { get; set; } = [];
 }
 
 public static class ReportGenerator
@@ -85,6 +87,8 @@ public static class ReportGenerator
                 Stats = NumericMetrics.ToDictionary(x => x.Key, x => Stat.Of(g.Select(x.Get))),
             });
         }
+        report.AiReviews = runs.Select(r => Review.AiReview.LatestFor(store, r.RunId)).OfType<Review.AiReviewSummary>()
+            .GroupBy(s => s.SetId).Select(g => g.First()).ToList();
         report.Limitations.AddRange(StandardLimitations);
         report.Limitations.AddRange(metrics.SelectMany(m => m.TelemetryUnavailable).Distinct());
         return report;
@@ -216,6 +220,8 @@ public static class ReportGenerator
             sb.AppendLine();
         }
 
+        AiReviewSection(sb, r);
+
         sb.AppendLine("## Per-run detail");
         sb.AppendLine();
         foreach (var m in r.Runs)
@@ -274,4 +280,37 @@ public static class ReportGenerator
     private static string Short(string id) => id.Length > 26 ? id[..15] + "…" + id[^6..] : id;
     private static string Clip(string s, int max) => s.Length <= max ? s : s[..max] + "…";
     private static string Esc(string s) => s.Replace("|", "\\|").ReplaceLineEndings(" ");
+
+    private static void AiReviewSection(System.Text.StringBuilder sb, ComparisonReport r)
+    {
+        sb.AppendLine("## Engineering quality (independent AI review, docs/ai-review.md)");
+        sb.AppendLine();
+        if (r.AiReviews.Count == 0) { sb.AppendLine("_No AI review yet (`bench ai-review`)._"); sb.AppendLine(); return; }
+        foreach (var s in r.AiReviews)
+        {
+            var runs = r.Runs.Select(m => s.Runs.FirstOrDefault(x => x.RunId == m.RunId)).ToList();
+            sb.AppendLine($"Set `{s.SetId}` · protocol `{s.ProtocolSha256[..12]}` {(s.ProtocolApproved ? "(owner-approved)" : "(**DRAFT**, not owner-approved)")} · reviewers {string.Join(", ", s.Reviewers)} · {s.Passes} blinded pass(es) each, order alternated · cost ${s.TotalCostUsd:0.00}");
+            sb.AppendLine();
+            sb.AppendLine("Blinded code review, scores 1-5 per pass (pass 1/pass 2):");
+            sb.AppendLine();
+            sb.AppendLine("| Dimension | " + string.Join(" | ", r.Runs.Select(m => $"{m.WorkflowId} `{Short(m.RunId)}`")) + " |");
+            sb.AppendLine("|---|" + string.Join("", r.Runs.Select(_ => "---|")));
+            foreach (var d in Rubric.Dimensions)
+                sb.AppendLine($"| {d} | " + string.Join(" | ", runs.Select(x => x is null ? "not reviewed" : Review.AiReview.ScoreCell(x, d))) + " |");
+            sb.AppendLine("| Corrective prompts (process review, unblinded) | " + string.Join(" | ", runs.Select(x => x is null || x.Process.Count == 0 ? "–"
+                : string.Join(" · ", x.Process.Select(kv => $"{Review.AiReview.ShortModel(kv.Key)} {(kv.Value.CorrectivePrompts.Count == 0 ? "none" : string.Join(",", kv.Value.CorrectivePrompts.Select(h => "H" + h)))}")))) + " |");
+            sb.AppendLine("| Tooling interventions (process review) | " + string.Join(" | ", runs.Select(x => x is null || x.Process.Count == 0 ? "–"
+                : string.Join(" · ", x.Process.Select(kv => $"{Review.AiReview.ShortModel(kv.Key)} {(kv.Value.ToolingInterventions.Count == 0 ? "none" : string.Join(",", kv.Value.ToolingInterventions.Select(h => "H" + h)))}")))) + " |");
+            sb.AppendLine();
+            if (s.Flags.Count > 0)
+            {
+                sb.AppendLine("Flags:");
+                sb.AppendLine();
+                foreach (var f in s.Flags) sb.AppendLine("- " + Esc(f));
+                sb.AppendLine();
+            }
+            sb.AppendLine("Evidence, risks and reviewer comparisons: `<dataRoot>/ai-reviews/" + s.SetId + "/summary.md`. Scores are not averaged across reviewers or passes; disagreement is shown, not resolved.");
+            sb.AppendLine();
+        }
+    }
 }

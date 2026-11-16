@@ -15,6 +15,7 @@ public sealed class ExperimentConfig
     public EvaluationConfig Evaluation { get; set; } = new();
     public PathsConfig Paths { get; set; } = new();
     public EvidenceConfig Evidence { get; set; } = new();
+    public AiReviewConfig AiReview { get; set; } = new();
     public string PricingFile { get; set; } = "pricing/models.json";
     public string DecisionsFile { get; set; } = "decisions.json";
 
@@ -144,6 +145,37 @@ public sealed class EvaluationConfig
     public List<string> Controls { get; set; } = [];
 }
 
+/// <summary>
+/// Independent AI engineering review (docs/ai-review.md). The protocol (prompts, rubric, path filters,
+/// reviewers) is pinned by <see cref="ApprovedProtocolSha256"/> once the benchmark owner approves it.
+/// </summary>
+public sealed class AiReviewConfig
+{
+    /// <summary>Folder (relative to the experiment dir) holding code-review.md, process-review.md and rubric.md.</summary>
+    public string PromptsDirectory { get; set; } = "ai-review";
+    public string Status { get; set; } = "draft";
+    public string? ApprovedBy { get; set; }
+    public DateTimeOffset? ApprovedAt { get; set; }
+    public string? ApprovedProtocolSha256 { get; set; }
+    public List<AiReviewerConfig> Reviewers { get; set; } = [];
+    /// <summary>Blinded code-review passes per reviewer; passes alternate which change is shown first as "A".</summary>
+    public int Passes { get; set; } = 2;
+    /// <summary>Paths removed from the blinded bundles: workflow process artifacts and tool scaffolding.</summary>
+    public List<string> ExcludeGlobs { get; set; } = [];
+    /// <summary>Generated files shown only as a one-line stub with their size.</summary>
+    public List<string> CollapseGlobs { get; set; } = [];
+    /// <summary>Words that reveal a workflow. Counted per bundle (never redacted) and reported after unblinding.</summary>
+    public List<string> LeakTerms { get; set; } = [];
+    public int TimeoutMinutes { get; set; } = 30;
+    public decimal MaxBudgetUsdPerCall { get; set; } = 10m;
+}
+
+public sealed class AiReviewerConfig
+{
+    public string Model { get; set; } = "";
+    public string Effort { get; set; } = "high";
+}
+
 public sealed class PathsConfig
 {
     /// <summary>Evidence + workspaces root, outside the harness repository. Relative paths resolve from the harness root.</summary>
@@ -225,6 +257,13 @@ public static partial class ConfigValidator
                 if (!File.Exists(c.ResolveExperimentPath(p))) errors.Add($"Compatibility patch not found: {p}");
             if (!Directory.Exists(c.HiddenSuitePath)) errors.Add($"Hidden suite not found: {c.HiddenSuitePath}");
             if (Fs.IsUnder(c.DataRoot, c.HarnessRoot)) errors.Add("paths.dataRoot must be outside the harness repository so agents cannot reach the evaluator via relative paths.");
+            if (c.AiReview.Reviewers.Count > 0)
+            {
+                var dir = c.ResolveExperimentPath(c.AiReview.PromptsDirectory);
+                foreach (var f in new[] { "code-review.md", "process-review.md", "rubric.md" })
+                    if (!File.Exists(Path.Combine(dir, f))) errors.Add($"aiReview prompt file missing: {Path.Combine(dir, f)}");
+                if (c.AiReview.Passes < 1) errors.Add("aiReview.passes must be at least 1.");
+            }
         }
         return errors;
     }

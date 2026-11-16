@@ -12,7 +12,7 @@ public sealed class Args
 
     private static readonly HashSet<string> BooleanFlags = new(StringComparer.OrdinalIgnoreCase)
     {
-        "resume", "allow-draft", "no-seal", "mutation-control", "json", "verify-activation", "force-new", "help", "keep", "skip-activation-check",
+        "resume", "allow-draft", "code-only", "process-only", "no-seal", "mutation-control", "json", "verify-activation", "force-new", "help", "keep", "skip-activation-check",
     };
 
     public Args(IEnumerable<string> argv)

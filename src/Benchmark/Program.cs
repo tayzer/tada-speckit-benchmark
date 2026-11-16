@@ -24,6 +24,7 @@ public static class Program
           resume <run-id>         Continue a run you left open
           finish <run-id>         Finish a run you left open without resuming it
           compare                 Rebuild the comparison report from all finished runs
+          ai-review               Independent blinded AI engineering review of the current pair (docs/ai-review.md)
           status                  List runs
           doctor                  Check tools, versions, isolation and configuration (no model calls)
 
@@ -36,6 +37,8 @@ public static class Program
           evaluate --run <id> [--allow-draft] [--mutation-control] | evaluate --control <patch|baseline>
           compare [--runs a,b,...] [--out <dir>]
           review-template --run <id> | verify --run <id> | decision list | dry-run [--out <dir>]
+          review-bundle [--runs 'a,b']          Build blinded review bundles only (no model calls) to inspect
+          ai-review [--runs 'a,b' | --set <id>] [--code-only | --process-only] [--allow-draft]
           timer / interaction / answer         Optional manual human-effort logging (not needed: run
                                                derives human inputs and waiting time from the transcript)
           init | validate
@@ -289,6 +292,45 @@ public static class Program
                     if (runs is null && args.Positional.Count > 1) throw new BenchmarkException("Give run ids with --runs, e.g. `bench compare --runs 'a,b'`.");
                     Console.WriteLine("Report: " + await SimpleRun.WriteComparisonAsync(config, store, ids, args.Get("out")));
                     return 0;
+                }
+
+            case "review-bundle":
+                {
+                    var runs = args.Get("runs") is { } list
+                        ? list.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Concat(args.Positional.Skip(1)).Select(store.Load).ToList()
+                        : Review.AiReview.DefaultPair(config, store);
+                    var key = await Review.AiReview.BuildBundlesAsync(config, store, runs, Log);
+                    Console.WriteLine($"Review set {key.SetId}: bundles in {Path.Combine(Review.AiReview.SetDir(store, key.SetId), "bundles")}");
+                    Console.WriteLine("Inspect them, then run `bench ai-review --set " + key.SetId + "`. The run mapping is in key.json; do not show it to reviewers.");
+                    return 0;
+                }
+
+            case "ai-review":
+                {
+                    var approved = Review.AiReview.IsApproved(config);
+                    if (!approved && !args.Flag("allow-draft"))
+                        throw new BenchmarkException($"The AI review protocol is not owner-approved (protocol sha256 {Review.AiReview.ProtocolSha256(config)}). Review experiments/{config.ExperimentId}/{config.AiReview.PromptsDirectory}/ and the aiReview section of experiment.json, then set aiReview.status=approved and approvedProtocolSha256; or pass --allow-draft for a run labelled DRAFT.");
+                    Review.ReviewSetKey key;
+                    if (args.Get("set") is { } setId)
+                    {
+                        key = Json.Read<Review.ReviewSetKey>(Path.Combine(Review.AiReview.SetDir(store, setId), "key.json"));
+                        if (key.ProtocolSha256 != Review.AiReview.ProtocolSha256(config))
+                            throw new BenchmarkException("The protocol changed since this set's bundles were built; build a new set.");
+                    }
+                    else
+                    {
+                        var runs = args.Get("runs") is { } list
+                            ? list.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Concat(args.Positional.Skip(1)).Select(store.Load).ToList()
+                            : Review.AiReview.DefaultPair(config, store);
+                        key = await Review.AiReview.BuildBundlesAsync(config, store, runs, Log);
+                    }
+                    var summary = await Review.AiReview.RunAsync(config, store, key, args.Flag("code-only"), args.Flag("process-only"), Log, ct);
+                    var setDir = Review.AiReview.SetDir(store, key.SetId);
+                    Console.WriteLine($"AI review {key.SetId} done. Cost ${summary.TotalCostUsd:0.00}. {summary.Calls.Count(c => !c.Succeeded)} failed call(s), {summary.Flags.Count} flag(s).");
+                    foreach (var f in summary.Flags) Console.WriteLine("  " + f);
+                    Console.WriteLine("Summary     " + Path.Combine(setDir, "summary.md"));
+                    Console.WriteLine("Comparison  " + await SimpleRun.WriteComparisonAsync(config, store, null, null));
+                    return summary.Calls.All(c => c.Succeeded) ? 0 : 1;
                 }
 
             case "review-template":

@@ -111,6 +111,27 @@
     "redactSecrets": true,
     "retention": "Kept locally under the data root until the operator deletes it. Never uploaded by the harness. Claude Code deletes its own transcripts after cleanupPeriodDays (default 30), so `benchmark finish` imports them immediately."
   },
+  "aiReview": {
+    "promptsDirectory": "ai-review",
+    "status": "draft",
+    "approvedBy": null,
+    "approvedAt": null,
+    "approvedProtocolSha256": null,
+    "reviewers": [
+      { "model": "claude-opus-5-5", "effort": "high" },
+      { "model": "claude-sonnet-5-5", "effort": "high" }
+    ],
+    "passes": 2,
+    "excludeGlobs": [
+      ".specify/**", "specs/**", ".claude/**",
+      ".tada/**", "tada.json", "features/README.md",
+      "tests/Acceptance/TadaAcceptance.cs", "tests/Acceptance/TadaRuntimeCheckpoint.cs", "tests/Acceptance/Tada.Acceptance.targets"
+    ],
+    "collapseGlobs": [ "**/packages.lock.json", "**/Migrations/*.Designer.cs" ],
+    "leakTerms": [ "tada", "speckit", "spec-kit", "spec kit", ".specify" ],
+    "timeoutMinutes": 30,
+    "maxBudgetUsdPerCall": 10
+  },
   "pricingFile": "pricing/models.json",
   "decisionsFile": "decisions.json"
 }

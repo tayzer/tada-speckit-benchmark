@@ -23,6 +23,7 @@ evaluator/                     hidden behavioural suite (DRAFT) + control patche
 pricing/models.json            model-equivalent pricing (estimates only)
 docs/                          compatibility, telemetry, isolation, rubric, operator runbook
 scripts/Get-TadaRelease.ps1    downloads and checksum-verifies the pinned TADA release plugin
+experiments/*/ai-review/       pinned prompts and rubric for the independent AI review (docs/ai-review.md)
 bench.ps1                      wrapper: builds the harness when sources change, then runs it
 ```
 

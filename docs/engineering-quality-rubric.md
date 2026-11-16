@@ -1,5 +1,7 @@
 # Engineering-quality rubric (human review)
 
+> An independent, blinded AI review with the same dimensions is available: see `docs/ai-review.md`.
+
 These scores are **human judgements**, recorded per run with `benchmark review-template --run <id>` and
 `<dataRoot>/reviews/<runId>.json`. They are never produced by either competing workflow, and no AI score is
 treated as authoritative. Review the diff in `<dataRoot>/runs/<runId>/changes/final.patch`.

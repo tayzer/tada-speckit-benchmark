@@ -68,6 +68,9 @@ public static class Doctor
         var suiteHash = Fs.Sha256Directory(c.HiddenSuitePath);
         var approved = c.Evaluation.Status == "approved" && suiteHash.Equals(c.Evaluation.ApprovedSuiteSha256, StringComparison.OrdinalIgnoreCase);
         Report(approved, "hidden acceptance suite approved", $"status={c.Evaluation.Status}, sha256={suiteHash}", warnOnly: true);
+        if (c.AiReview.Reviewers.Count > 0)
+            Report(Review.AiReview.IsApproved(c), "AI review protocol approved",
+                $"status={c.AiReview.Status}, protocol sha256={Review.AiReview.ProtocolSha256(c)}, reviewers={string.Join(",", c.AiReview.Reviewers.Select(r => r.Model))}", warnOnly: true);
         var decisions = Human.DecisionRegister.Load(c.ResolveExperimentPath(c.DecisionsFile));
         var undecided = decisions.Decisions.Where(d => d.Status != "approved").Select(d => d.Id).ToList();
         Report(undecided.Count == 0, "business decisions approved", undecided.Count == 0 ? "all approved" : "awaiting owner: " + string.Join(", ", undecided), warnOnly: true);
