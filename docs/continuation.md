@@ -29,7 +29,7 @@ controlled comparison from one codebase. The report states this in its limitatio
   chosen after the task-1 results were known, and the config records that (`continuation.taskSelection`).
 - **Decisions**: the task-1 register (D1-D10). D3 and D7 already define the expected behaviour, so there are
   no new business questions.
-- **Hidden suite** (`evaluator/CheckoutReload.HiddenTests`, draft until approved):
+- **Hidden suite** (`evaluator/CheckoutReload.HiddenTests`, approved 2026-11-16 at `2b1d070f…d5a8`):
 
   | Test | Scenario | Decisions | Critical |
   |---|---|---|---|

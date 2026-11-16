@@ -161,10 +161,10 @@
   },
   "evaluation": {
     "hiddenSuite": "evaluator/CheckoutReload.HiddenTests",
-    "status": "draft",
-    "approvedBy": null,
-    "approvedAt": null,
-    "approvedSuiteSha256": null,
+    "status": "approved",
+    "approvedBy": "benchmark owner",
+    "approvedAt": "2026-11-16T18:30:00Z",
+    "approvedSuiteSha256": "2b1d070f3decc95656072b30b075cb0364b4c775855354a79a262fc7a7d8d5a8",
     "testTimeoutMinutes": 30,
     "hiddenSuiteDestination": "tests/__HiddenEvaluation",
     "controls": [
@@ -173,10 +173,10 @@
   },
   "aiReview": {
     "promptsDirectory": "ai-review",
-    "status": "draft",
-    "approvedBy": null,
-    "approvedAt": null,
-    "approvedProtocolSha256": null,
+    "status": "approved",
+    "approvedBy": "benchmark owner",
+    "approvedAt": "2026-11-16T18:30:00Z",
+    "approvedProtocolSha256": "109b71feb3cde36cdde0302a6dac09025b5b681b9017498a7d47d1964e50f99d",
     "reviewers": [
       {
         "model": "claude-opus-5-5",
