@@ -34,7 +34,7 @@ The suite works **black-box**:
 | HT05 | Failure after the order commits, before the response; retry → exactly one order | ✔ | D5 |
 | HT06 | New checkout with the **same items** after a completed order → second order | ✔ | D1, D6 |
 | HT07 | New checkout with different items → second order | | D6 |
-| HT08 | Reloaded checkout page while the first submission is in flight → exactly one order (retry), and neither submission ends in a 5xx (added 2026-11-16, draft) | | D7, D3 |
+| HT08 | Reloaded checkout page while the first submission is in flight → exactly one order (retry), and neither submission ends in a 5xx (added 2026-11-16, owner-approved) | | D7, D3 |
 | HT09 | Happy path still works: confirmation page, 1 order, basket emptied | ✔ | — |
 | HT10 | Empty-basket checkout: no order, no 5xx | | — |
 | HT11 | Two different customers checking out concurrently each get their order | | — |

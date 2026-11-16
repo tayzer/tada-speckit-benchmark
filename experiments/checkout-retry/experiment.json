@@ -98,8 +98,8 @@
     "hiddenSuite": "evaluator/CheckoutRetry.HiddenTests",
     "status": "approved",
     "approvedBy": "benchmark owner",
-    "approvedAt": "2026-11-14T13:30:00Z",
-    "approvedSuiteSha256": "380e545903b5b8b77d52435030dc3a6faf80ee877cdba9e9ee5126f16511540f",
+    "approvedAt": "2026-11-16T17:00:00Z",
+    "approvedSuiteSha256": "044aafa967d30d9be31d81a0a50201fe5741a3f12ad64158435d4541a69f4896",
     "testTimeoutMinutes": 30,
     "hiddenSuiteDestination": "tests/__HiddenEvaluation",
     "controls": [ "evaluator/controls/reference-transactional-checkout.patch", "evaluator/controls/seeded-overblocking.patch" ]
@@ -113,10 +113,10 @@
   },
   "aiReview": {
     "promptsDirectory": "ai-review",
-    "status": "draft",
-    "approvedBy": null,
-    "approvedAt": null,
-    "approvedProtocolSha256": null,
+    "status": "approved",
+    "approvedBy": "benchmark owner",
+    "approvedAt": "2026-11-16T17:00:00Z",
+    "approvedProtocolSha256": "9d9e045ac90b4d91d4ed9711fc1779975f9ee0f00ebd219aa014598505148fbe",
     "reviewers": [
       { "model": "claude-opus-5-5", "effort": "high" },
       { "model": "claude-sonnet-5-5", "effort": "high" }

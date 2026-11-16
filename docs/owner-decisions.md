@@ -6,12 +6,11 @@ submission from a reloaded checkout page while the first is still in flight is a
 because that basket has not been ordered yet (consistent with D1). HT08 now asserts this; it fails on the
 original code and passes on the reference fix. HT08 remains non-critical.
 
-**Pending 2026-11-16: hidden-suite change for re-approval.** Both AI code reviewers found that, in both
+**Approved 2026-11-16 by the benchmark owner: hidden-suite change** (sha256 `044aafa9...4896`). Both AI code reviewers found that, in both
 implementations, the submission that loses a reload-and-resubmit race (D7) ends in an HTTP 500. HT08 only
 counted orders. The draft change also asserts that neither submission ends in a server error, as D3
-requires for duplicate in-flight submissions. This changes the suite hash, so the suite is unapproved until
-the owner re-approves it (`evaluation.approvedSuiteSha256`, printed by `doctor`). Validation results are in
-evaluator/README.md.
+requires for duplicate in-flight submissions. Validation results are in evaluator/README.md. The owner also approved the AI review protocol
+(sha256 `9d9e045a...8fbe`: Opus 5.5 and Sonnet 5.5, two passes each, filters as configured) on the same day.
 
 Still open (sections C-E below): agent settings, Spec Kit first-message choice, execution mode and repetitions
 use the current configuration unless changed.
@@ -69,4 +68,4 @@ None of these has been decided on your behalf. The values currently in the confi
    - two passes, with the presentation order swapped;
    - the exclude/collapse filters, in particular that product-affecting build changes stay visible even though they reveal TADA.
 
-   Approve by setting `aiReview.status`, `approvedBy`, `approvedAt` and `approvedProtocolSha256` (printed by `doctor`).
+   Approved by the owner on 2026-11-16 (protocol sha256 `9d9e045a...8fbe`), keeping Sonnet as the second reviewer.
