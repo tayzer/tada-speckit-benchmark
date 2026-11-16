@@ -1,0 +1,9 @@
+{
+  "status": "DRAFT — proposed by the harness author, not approved by the benchmark owner",
+  "tests": [
+    { "id": "RL01_ReloadWhileFirstInFlight_OneOrder_NoServerError", "category": "reload-in-flight", "expectation": "Reloading the checkout page while the first submission is in flight and paying again creates exactly one order, and neither submission ends in a server error.", "critical": true, "decisions": [ "D7", "D3" ] },
+    { "id": "RL02_TwoTabsOpenedBeforePaying_BothSubmitted_OneOrder_NoServerError", "category": "two-tabs", "expectation": "Two checkout tabs opened before paying and both submitted while the first is in flight: exactly one order, no server error.", "critical": false, "decisions": [ "D3", "D7" ] },
+    { "id": "RL03_TimeoutThenReloadAndPayAgain_OneOrder_NoServerError", "category": "reload-after-timeout", "expectation": "The customer stops waiting, reloads the checkout page and pays again while the first is still processing: exactly one order, no server error.", "critical": false, "decisions": [ "D3", "D7" ] },
+    { "id": "RL04_AfterReloadRace_NewBasketIsANewPurchase", "category": "legitimate-purchase", "expectation": "After a reload race has placed one order, a newly filled basket is a new purchase: a second order and the confirmation page.", "critical": true, "decisions": [ "D1", "D6" ] }
+  ]
+}

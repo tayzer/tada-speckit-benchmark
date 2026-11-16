@@ -89,6 +89,11 @@ public static class ReportGenerator
         }
         report.AiReviews = runs.Select(r => Review.AiReview.LatestFor(store, r.RunId)).OfType<Review.AiReviewSummary>()
             .GroupBy(s => s.SetId).Select(g => g.First()).ToList();
+        if (c.Continuation is { } k)
+        {
+            report.Limitations.Add($"Continuation of {k.ParentExperiment}: each arm starts from its own earlier run, so the starting code differs between arms. Results describe each workflow's second change, not a controlled comparison from one codebase.");
+            if (k.TaskSelection.Length > 0) report.Limitations.Add("Task selection: " + k.TaskSelection);
+        }
         report.Limitations.AddRange(StandardLimitations);
         report.Limitations.AddRange(metrics.SelectMany(m => m.TelemetryUnavailable).Distinct());
         return report;
@@ -135,6 +140,8 @@ public static class ReportGenerator
             ("Critical requirements failed", m => m.CriticalFailures.Count == 0 ? "0" : $"{m.CriticalFailures.Count} ({string.Join(", ", m.CriticalFailures)})"),
             ("Implementation builds", m => Fmt(m.ImplementationBuilds)),
             ("Regressions in original suite (baseline-passing tests)", m => m.Regressions is null ? "n/a" : $"{m.Regressions} of {m.OriginalBaselinePassing}"),
+            ("Parent experiment's hidden suite re-run (continuation) PASS / total", m => m.ParentSuiteTotal is null ? "n/a" : $"{m.ParentSuitePass} / {m.ParentSuiteTotal}"),
+            ("…newly failing vs the parent run", m => m.ParentSuiteTotal is null ? "n/a" : m.ParentSuiteNewlyFailing.Count == 0 ? "none" : string.Join(", ", m.ParentSuiteNewlyFailing)),
             ("Own tests detect reverted fix (mutation control)", m => m.MutationDetected is null ? "not run" : m.MutationDetected.Value ? "yes" : "NO"),
             ("Evaluator suite approved", m => m.EvaluatorApproved ? "yes" : "NO (draft)"),
         ]);

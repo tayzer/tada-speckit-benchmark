@@ -23,7 +23,17 @@ public static class IntegrityChecker
         }
 
         if (runs.Count == 0) return [new IntegrityCheck("runs", "Runs to compare", CheckStatus.Fail, "No runs.")];
-        Same("base-commit", "1. Same application starting revision (frozen base incl. compatibility patches)", r => r.BaseCommit);
+        if (c.Continuation is { } k)
+        {
+            // Each arm deliberately starts from its own parent run; check that it is the pinned one.
+            var wrong = runs.Where(r => r.ParentRunId is null || !k.ParentRuns.TryGetValue(r.WorkflowId, out var p) || p != r.ParentRunId).ToList();
+            checks.Add(new IntegrityCheck("base-commit", "1. Each arm starts from its own pinned parent run (continuation of " + k.ParentExperiment + ")",
+                wrong.Count == 0 ? CheckStatus.Pass : CheckStatus.Fail,
+                wrong.Count == 0 ? string.Join(" | ", runs.Select(r => $"{r.WorkflowId}: {r.ParentRunId} @ {r.ParentFinalCommit?[..12]}"))
+                                 : "Not continuing the pinned parent: " + string.Join(", ", wrong.Select(r => r.RunId))));
+        }
+        else
+            Same("base-commit", "1. Same application starting revision (frozen base incl. compatibility patches)", r => r.BaseCommit);
         Same("app-commit", "1b. Same pinned upstream commit", r => r.ApplicationCommit);
         Same("prompt", "2. Same natural-language task (SHA-256 of prompt)", r => r.PromptSha256);
         var promptDelivered = runs.All(r => r.InitialMessage.Contains(c.PromptText, StringComparison.Ordinal));

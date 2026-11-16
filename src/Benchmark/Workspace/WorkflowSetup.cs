@@ -10,13 +10,25 @@ namespace Benchmark.Workspace;
 public static class WorkflowSetup
 {
     public static async Task<(WorkflowSetupRecord Record, string? InstalledPluginPath)> ApplyAsync(
-        ExperimentConfig c, WorkflowConfig w, RunStore store, string runId, string workspace, IReadOnlyDictionary<string, string?> env, Action<string> log)
+        ExperimentConfig c, WorkflowConfig w, RunStore store, string runId, string workspace, IReadOnlyDictionary<string, string?> env, Action<string> log,
+        string? continuesRunId = null)
     {
         var record = new WorkflowSetupRecord { WorkflowId = w.Id, Kind = w.Kind, Version = w.Version };
         var sw = System.Diagnostics.Stopwatch.StartNew();
         string? pluginPath = null;
         switch (w.Kind)
         {
+            case WorkflowKind.Speckit when continuesRunId is not null:
+                {
+                    // Continuation: the workspace already holds this arm's Spec Kit installation and its specs.
+                    record.Steps.Add($"Continuation of {continuesRunId}: Spec Kit already initialised in the parent run; setup command not re-run.");
+                    foreach (var f in new[] { ".specify/init-options.json", ".specify/integration.json", ".specify/integrations/claude.manifest.json" })
+                    {
+                        var p = Path.Combine(workspace, f);
+                        if (File.Exists(p)) record.VersionRecords[f] = File.ReadAllText(p).Trim();
+                    }
+                    break;
+                }
             case WorkflowKind.Speckit:
                 {
                     var resolved = ProcessRunner.ResolveOnPath(w.SetupCommand[0]) ?? throw new BenchmarkException($"Setup executable '{w.SetupCommand[0]}' not found on PATH.");

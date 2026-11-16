@@ -77,7 +77,11 @@ public static class Program
             return 0;
         }
 
-        var config = ExperimentConfig.Load(args.Get("experiment") ?? FindDefaultExperiment());
+        var experimentArg = args.Get("experiment");
+        // A bare name ("checkout-reload") means experiments/<name> in the harness.
+        if (experimentArg is not null && experimentArg.IndexOfAny(['/', Path.DirectorySeparatorChar]) < 0 &&!Directory.Exists(experimentArg))
+            experimentArg = Path.Combine(ExperimentConfig.FindHarnessRoot(Directory.GetCurrentDirectory()), "experiments", experimentArg);
+        var config = ExperimentConfig.Load(experimentArg ?? FindDefaultExperiment());
         var store = new RunStore(config.DataRoot);
         var pricing = File.Exists(config.ResolveHarnessPath(config.PricingFile)) ? PricingTable.Load(config.ResolveHarnessPath(config.PricingFile)) : null;
         var register = () => DecisionRegister.Load(config.ResolveExperimentPath(config.DecisionsFile));

@@ -46,6 +46,11 @@ public sealed class RunMetrics
     public int HiddenIndeterminate { get; set; }
     public int HiddenNotEvaluated { get; set; }
     public List<string> CriticalFailures { get; set; } = [];
+    /// <summary>Continuation: parent run, and the parent experiment's hidden suite re-run (pass/total, newly failing).</summary>
+    public string? ParentRunId { get; set; }
+    public int? ParentSuitePass { get; set; }
+    public int? ParentSuiteTotal { get; set; }
+    public List<string> ParentSuiteNewlyFailing { get; set; } = [];
     public Dictionary<string, string> HiddenOutcomes { get; set; } = new();
     public bool? ImplementationBuilds { get; set; }
     public int? Regressions { get; set; }
@@ -113,6 +118,7 @@ public static class MetricsCollector
             RunId = run.RunId, WorkflowId = run.WorkflowId, Synthetic = run.Synthetic, Status = run.Status.ToString(),
             Mode = run.Mode?.ToString(), Deviations = run.Deviations.ToList(),
             EnvironmentSetupSeconds = ParseEnvSetup(run.Setup.Steps), WorkflowSetupSeconds = run.Setup.SetupSeconds,
+            ParentRunId = run.ParentRunId,
         };
         if (run.Invocations.Count > 0)
             m.WallClockSeconds = (run.Invocations.Max(i => i.EndedAt) - run.Invocations.Min(i => i.StartedAt)).TotalSeconds;
@@ -152,7 +158,7 @@ public static class MetricsCollector
         m.Human = HumanLog.Summarise(human.Read(), run.FinishedAt);
         m.HumanActiveSeconds = m.Human.TotalActiveSeconds;
 
-        var eval = LatestEvaluation(store, run.RunId);
+        var eval = LatestEvaluation(store, run.RunId, c.ExperimentId, run.ExperimentId);
         if (eval is not null)
         {
             m.EvaluationId = eval.EvaluationId;
@@ -177,6 +183,12 @@ public static class MetricsCollector
                 if (t?.Outcome == TestOutcome.Fail && catalog?.Tests.FirstOrDefault(x => x.Id == id)?.Critical == true) m.CriticalFailures.Add(id);
             }
             m.Regressions = eval.Regressions.Count;
+            if (eval.RegressionHidden is { } rh)
+            {
+                m.ParentSuiteTotal = rh.Tests.Count;
+                m.ParentSuitePass = rh.Tests.Count(t => t.Outcome == TestOutcome.Pass);
+                m.ParentSuiteNewlyFailing = eval.HiddenRegressions.Select(r => r.Test.Split('.').Last()).ToList();
+            }
             var baseRecordPath = BasePreparer.BaseFile(store, c);
             if (File.Exists(baseRecordPath)) m.OriginalBaselinePassing = Json.Read<BaseRecord>(baseRecordPath).BaselineTests.Sum(t => t.Passed);
             m.MutationDetected = eval.RevertedProductionControl?.Detected;
@@ -191,12 +203,16 @@ public static class MetricsCollector
         return m;
     }
 
-    public static EvaluationRecord? LatestEvaluation(RunStore store, string runId)
+    /// <summary>
+    /// Latest evaluation of a run made with <paramref name="experimentId"/>'s suite. Records without an experiment id
+    /// (written before 2026-11-16) count as the run's own experiment.
+    /// </summary>
+    public static EvaluationRecord? LatestEvaluation(RunStore store, string runId, string experimentId, string runExperimentId)
     {
         if (!Directory.Exists(store.EvaluationsRoot)) return null;
         return Directory.GetDirectories(store.EvaluationsRoot)
             .Select(d => Path.Combine(d, "evaluation.json")).Where(File.Exists)
-            .Select(Json.Read<EvaluationRecord>).Where(e => e.RunId == runId)
+            .Select(Json.Read<EvaluationRecord>).Where(e => e.RunId == runId && (e.ExperimentId ?? runExperimentId) == experimentId)
             .OrderBy(e => e.EndedAt).LastOrDefault();
     }
 

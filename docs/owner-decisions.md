@@ -12,6 +12,14 @@ counted orders. The draft change also asserts that neither submission ends in a 
 requires for duplicate in-flight submissions. Validation results are in evaluator/README.md. The owner also approved the AI review protocol
 (sha256 `9d9e045a...8fbe`: Opus 5.5 and Sonnet 5.5, two passes each, filters as configured) on the same day.
 
+**Pending 2026-11-16: task 2, `experiments/checkout-reload` (docs/continuation.md).** Owner to approve:
+1. the task wording in `experiments/checkout-reload/task.md`;
+2. the hidden suite `evaluator/CheckoutReload.HiddenTests` (RL01-RL04). Validation results are in
+   docs/continuation.md, and the hash is printed by `doctor --experiment checkout-reload`;
+3. the AI review protocol for continuations (`experiments/checkout-reload/ai-review/`: same rubric and
+   process prompt, with the code-review prompt adapted to different starting points);
+4. the parent runs pinned in `continuation.parentRuns`.
+
 Still open (sections C-E below): agent settings, Spec Kit first-message choice, execution mode and repetitions
 use the current configuration unless changed.
 

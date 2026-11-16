@@ -73,6 +73,9 @@ public sealed class RunRecord
     public string ApplicationCommit { get; set; } = "";
     public string BaseCommit { get; set; } = "";
     public string SetupCommit { get; set; } = "";
+    /// <summary>Continuation runs: the parent run and the commit this run started from (the parent's final commit).</summary>
+    public string? ParentRunId { get; set; }
+    public string? ParentFinalCommit { get; set; }
     public string? FinalCommit { get; set; }
     public string? FinalBranch { get; set; }
     public string WorkspacePath { get; set; } = "";

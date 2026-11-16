@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "checkout-reload",
+  "description": "Error page when checkout is reloaded or paid from two tabs while the first payment is in flight (eShopOnWeb). Continuation: each workflow continues its own checkout-retry run. TADA vs GitHub Spec Kit, both on Claude Code CLI.",
+  "application": {
+    "name": "eShopOnWeb",
+    "repository": "https://github.com/NimblePros/eShopOnWeb",
+    "commit": "f21d6233b851897371c25c5e7ffa67bb8552dba8",
+    "compatibilityPatches": [],
+    "solution": "eShopOnWeb.slnx",
+    "testProjects": [
+      "tests/UnitTests/UnitTests.csproj",
+      "tests/IntegrationTests/IntegrationTests.csproj",
+      "tests/FunctionalTests/FunctionalTests.csproj",
+      "tests/PublicApiIntegrationTests/PublicApiIntegrationTests.csproj"
+    ],
+    "excludedTestProjects": [
+      {
+        "path": "tests/EndToEndTests/EndToEndTests.csproj",
+        "reason": "Playwright browser tests: need installed browsers and a separately running application; not part of the reproducible baseline."
+      }
+    ],
+    "requiredTools": [
+      "dotnet",
+      "git"
+    ]
+  },
+  "task": {
+    "promptFile": "task.md",
+    "promptSha256": "23ab9e0cf076e196f32c00e5801a8e022e2864404d4156febbc4d861efb28ada"
+  },
+  "agent": {
+    "host": "claude-code-cli",
+    "claudeExecutable": "claude",
+    "cliVersion": "2.1.325",
+    "model": "claude-opus-5-5",
+    "effort": "high",
+    "fallbackModel": null,
+    "permissionMode": "acceptEdits",
+    "permissionPrompts": "none",
+    "settingSources": "project,local",
+    "strictMcpConfig": true,
+    "allowedTools": [
+      "Bash(dotnet restore *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "PowerShell(dotnet restore *)",
+      "PowerShell(dotnet build *)",
+      "PowerShell(dotnet test *)",
+      "PowerShell(git status *)",
+      "PowerShell(git diff *)",
+      "PowerShell(git log *)",
+      "PowerShell(git show *)"
+    ],
+    "disallowedTools": [
+      "WebFetch",
+      "WebSearch"
+    ],
+    "managedInvocationTimeoutMinutes": 240,
+    "environment": {},
+    "extraForbiddenRoots": []
+  },
+  "workflows": [
+    {
+      "id": "speckit",
+      "displayName": "GitHub Spec Kit",
+      "kind": "speckit",
+      "version": "v1.4.0 @ 0019fa14d12f45edabc2cc3176c9168a68bd0f97 (specify-cli 1.4.0)",
+      "initialMessageTemplate": "/speckit-specify {prompt}",
+      "setupCommand": [
+        "uvx",
+        "--from",
+        "git+https://github.com/github/spec-kit.git@0019fa14d12f45edabc2cc3176c9168a68bd0f97",
+        "specify",
+        "init",
+        "--here",
+        "--force",
+        "--non-interactive",
+        "--integration",
+        "claude",
+        "--script",
+        "ps",
+        "--ignore-agent-tools"
+      ],
+      "expectedFiles": [
+        ".specify/memory/constitution.md",
+        ".specify/integration.json",
+        ".claude/skills/speckit-specify/SKILL.md",
+        ".claude/skills/speckit-plan/SKILL.md",
+        ".claude/skills/speckit-tasks/SKILL.md",
+        ".claude/skills/speckit-implement/SKILL.md"
+      ],
+      "expectedMarkers": {
+        "plugins": [],
+        "skills": [
+          "speckit-specify",
+          "speckit-clarify",
+          "speckit-plan",
+          "speckit-tasks",
+          "speckit-implement"
+        ]
+      },
+      "forbiddenMarkers": [
+        "tada"
+      ],
+      "requiredTools": [
+        "uvx"
+      ],
+      "artifactGlobs": [
+        ".specify/**",
+        "specs/**"
+      ]
+    },
+    {
+      "id": "tada",
+      "displayName": "TADA",
+      "kind": "tada",
+      "version": "v0.1.0-alpha.13.107 @ 7e028efdcb28813970117c7cfdd507e037aca653 (published prerelease, TADA-plugin-0.1.0-alpha.13.107.zip sha256 50dbe79d80964c2f1ff8e7845bbcfdd6c348cec7f50093c46f1d6594ae0669e5)",
+      "initialMessageTemplate": "{prompt}",
+      "setupCommand": [],
+      "pluginPath": "../BenchmarkData/tada-release-0.1.0-alpha.13.107/tada",
+      "pluginSha256": "0578dd3f039f5610661217994569d0f43ffe125aa162ed9d2e1d5bc90fce3ad0",
+      "expectedFiles": [],
+      "expectedMarkers": {
+        "plugins": [
+          "tada"
+        ],
+        "skills": [
+          "tada:tada"
+        ]
+      },
+      "forbiddenMarkers": [
+        "speckit",
+        ".specify"
+      ],
+      "requiredTools": [
+        "pwsh"
+      ],
+      "artifactGlobs": [
+        ".tada/**",
+        "features/**",
+        "tests/Acceptance/**",
+        "tada.json"
+      ]
+    }
+  ],
+  "continuation": {
+    "parentExperiment": "checkout-retry",
+    "parentRuns": {
+      "speckit": "20261115-124537-speckit-d26ba9",
+      "tada": "20261116-134151-tada-485b83"
+    },
+    "regressionSuite": "evaluator/CheckoutRetry.HiddenTests",
+    "regressionSuiteSha256": "044aafa967d30d9be31d81a0a50201fe5741a3f12ad64158435d4541a69f4896",
+    "regressionSuiteDestination": "tests/__HiddenRegression",
+    "taskSelection": "Chosen on 2026-11-16 after the checkout-retry results were known: the AI reviewers and the stricter HT08 showed that both arms return HTTP 500 to one of two in-flight submissions when the checkout page is reloaded. The task was chosen because both arms share this defect (symmetric starting condition on the behaviour under test), not because it was expected to favour either workflow."
+  },
+  "evaluation": {
+    "hiddenSuite": "evaluator/CheckoutReload.HiddenTests",
+    "status": "draft",
+    "approvedBy": null,
+    "approvedAt": null,
+    "approvedSuiteSha256": null,
+    "testTimeoutMinutes": 30,
+    "hiddenSuiteDestination": "tests/__HiddenEvaluation",
+    "controls": [
+      "evaluator/controls/reference-transactional-checkout.patch"
+    ]
+  },
+  "aiReview": {
+    "promptsDirectory": "ai-review",
+    "status": "draft",
+    "approvedBy": null,
+    "approvedAt": null,
+    "approvedProtocolSha256": null,
+    "reviewers": [
+      {
+        "model": "claude-opus-5-5",
+        "effort": "high"
+      },
+      {
+        "model": "claude-sonnet-5-5",
+        "effort": "high"
+      }
+    ],
+    "passes": 2,
+    "excludeGlobs": [
+      ".specify/**",
+      "specs/**",
+      ".claude/**",
+      ".tada/**"
+    ],
+    "collapseGlobs": [
+      "**/packages.lock.json",
+      "**/Migrations/*.Designer.cs"
+    ],
+    "scaffoldGlobs": [
+      "tada.json",
+      "features/README.md",
+      "tests/Acceptance/TadaAcceptance.cs",
+      "tests/Acceptance/TadaRuntimeCheckpoint.cs",
+      "tests/Acceptance/Tada.Acceptance.targets"
+    ],
+    "leakTerms": [
+      "tada",
+      "speckit",
+      "spec-kit",
+      "spec kit",
+      ".specify"
+    ],
+    "timeoutMinutes": 30,
+    "maxBudgetUsdPerCall": 10
+  },
+  "paths": {
+    "dataRoot": "../BenchmarkData"
+  },
+  "evidence": {
+    "redactSecrets": true,
+    "retention": "Kept locally under the data root until the operator deletes it. Never uploaded by the harness. Claude Code deletes its own transcripts after cleanupPeriodDays (default 30), so `benchmark finish` imports them immediately."
+  },
+  "pricingFile": "pricing/models.json",
+  "decisionsFile": "../checkout-retry/decisions.json"
+}

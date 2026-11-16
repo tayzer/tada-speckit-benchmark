@@ -1,0 +1,1 @@
+Customers have reported getting an error page at checkout when payment is slow and they reload the checkout page and pay again, or pay from two browser tabs. Only one order is placed, but the error page worries them. Please fix this.

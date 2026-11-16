@@ -12,6 +12,9 @@ public sealed class EvaluatorIdentity
     public string SuiteStatus { get; set; } = "";
     public string? ApprovedBy { get; set; }
     public bool SuiteMatchesApproval { get; set; }
+    /// <summary>Continuation only: hash of the parent experiment's suite re-run as a regression check, and whether it matches the pin.</summary>
+    public string? RegressionSuiteSha256 { get; set; }
+    public bool? RegressionSuiteMatchesPin { get; set; }
     public string DotnetSdk { get; set; } = "";
     public string? LocalDb { get; set; }
 }
@@ -22,6 +25,8 @@ public sealed class EvaluationRecord
     public string Target { get; set; } = ""; // run id or control:<name>
     public string? RunId { get; set; }
     public string? WorkflowId { get; set; }
+    /// <summary>Experiment whose suite produced this evaluation. Null in records written before 2026-11-16 (= the run's own experiment).</summary>
+    public string? ExperimentId { get; set; }
     public bool Synthetic { get; set; }
     public string EvaluatedCommit { get; set; } = "";
     public DateTimeOffset StartedAt { get; set; }
@@ -33,6 +38,11 @@ public sealed class EvaluationRecord
     public List<TestProjectResult> OriginalTestsAgainstImplementation { get; set; } = [];
     public List<RegressionRecord> Regressions { get; set; } = [];
     public TestProjectResult? Hidden { get; set; }
+    /// <summary>Continuation: the parent experiment's hidden suite re-run, and its tests that passed for the parent but not now.</summary>
+    public TestProjectResult? RegressionHidden { get; set; }
+    public List<RegressionRecord> HiddenRegressions { get; set; } = [];
+    /// <summary>Continuation: the parent evaluation used as the baseline for both regression checks.</summary>
+    public string? ParentEvaluationId { get; set; }
     public MutationControlResult? RevertedProductionControl { get; set; }
     public List<string> Notes { get; set; } = [];
 }
@@ -57,13 +67,17 @@ public static class Evaluator
     public static EvaluatorIdentity Identity(ExperimentConfig c, string harnessCommit, BaseRecord b)
     {
         var hash = Fs.Sha256Directory(c.HiddenSuitePath);
+        var regression = c.Continuation is { } k ? Fs.Sha256Directory(c.ResolveHarnessPath(k.RegressionSuite)) : null;
         return new EvaluatorIdentity
         {
+            RegressionSuiteSha256 = regression,
+            RegressionSuiteMatchesPin = regression is null ? null : regression.Equals(c.Continuation!.RegressionSuiteSha256, StringComparison.OrdinalIgnoreCase),
             HarnessCommit = harnessCommit,
             HiddenSuiteSha256 = hash,
             SuiteStatus = c.Evaluation.Status,
             ApprovedBy = c.Evaluation.ApprovedBy,
-            SuiteMatchesApproval = c.Evaluation.Status == "approved" && hash.Equals(c.Evaluation.ApprovedSuiteSha256, StringComparison.OrdinalIgnoreCase),
+            SuiteMatchesApproval = c.Evaluation.Status == "approved" && hash.Equals(c.Evaluation.ApprovedSuiteSha256, StringComparison.OrdinalIgnoreCase)
+                && (regression is null || regression.Equals(c.Continuation!.RegressionSuiteSha256, StringComparison.OrdinalIgnoreCase)),
             DotnetSdk = b.Environment.DotnetSdk,
             LocalDb = b.Environment.LocalDb,
         };
@@ -93,6 +107,7 @@ public static class Evaluator
             Target = run?.RunId ?? $"control:{Path.GetFileNameWithoutExtension(controlPatch ?? "baseline")}",
             RunId = run?.RunId,
             WorkflowId = run?.WorkflowId,
+            ExperimentId = c.ExperimentId,
             StartedAt = DateTimeOffset.UtcNow,
             Evaluator = identity,
         };
@@ -143,10 +158,34 @@ public static class Evaluator
             record.FinalTreeTests.Add(await TestRunner.RunAsync(app, project, Path.Combine(evalDir, "results", "final-tree"), env, timeout, noBuild: true));
         }
 
-        // (b) Original test suite (from the base commit) against the implementation -> regressions.
+        // Continuation: the parent run's own tests and hidden results are the baseline for regressions.
+        EvaluationRecord? parentEval = null;
+        if (run?.ParentRunId is { } parentId)
+        {
+            var parentRun = store.Load(parentId);
+            parentEval = Reporting.MetricsCollector.LatestEvaluation(store, parentId, parentRun.ExperimentId, parentRun.ExperimentId);
+            if (parentEval is null || !parentEval.Evaluator.SuiteMatchesApproval)
+                throw new BenchmarkException($"Parent run {parentId} has no evaluation with its approved suite; evaluate it first.");
+            record.ParentEvaluationId = parentEval.EvaluationId;
+        }
+
+        // (b) Original test suite (from the base commit, or the parent's final tests for a continuation) against the implementation -> regressions.
         var originalDir = Path.Combine(evalDir, "original-tests");
         await Git.RunAsync(evalDir, "clone", "--quiet", "--no-hardlinks", "app", "original-tests");
         await Git.RunAsync(originalDir, "checkout", "--quiet", "--detach", "HEAD");
+        if (parentEval is not null)
+        {
+            await Git.RunAsync(originalDir, "rm", "-r", "-q", "--ignore-unmatch", "--", "tests");
+            await Git.RunAsync(originalDir, "checkout", run!.ParentFinalCommit!, "--", "tests");
+            foreach (var project in DiscoverTestProjects(originalDir, c))
+            {
+                log($"Parent run's tests against implementation: {project}");
+                record.OriginalTestsAgainstImplementation.Add(await TestRunner.RunAsync(originalDir, project, Path.Combine(evalDir, "results", "original"), env, timeout, noBuild: false));
+            }
+            record.Regressions = Regressions(parentEval.FinalTreeTests, record.OriginalTestsAgainstImplementation);
+        }
+        else
+        {
         foreach (var testDir in c.Application.TestProjects.Select(p => Path.GetDirectoryName(p)!.Replace('\\', '/')).Distinct())
         {
             // Remove whatever the workflow put there (including new files), then restore the original bytes.
@@ -160,6 +199,7 @@ public static class Evaluator
             record.OriginalTestsAgainstImplementation.Add(result);
         }
         record.Regressions = Regressions(baseRecord, record.OriginalTestsAgainstImplementation);
+        }
 
         // (c) Hidden behavioural suite, copied in only now and only into the evaluation clone.
         var hiddenDest = Path.Combine(app, c.Evaluation.HiddenSuiteDestination);
@@ -193,6 +233,21 @@ public static class Evaluator
             };
         }
 
+        // (c2) Continuation: the parent experiment's hidden suite, unchanged, as a regression check.
+        if (c.Continuation is { } k)
+        {
+            var regressionDest = Path.Combine(app, k.RegressionSuiteDestination);
+            Fs.CopyDirectory(c.ResolveHarnessPath(k.RegressionSuite), regressionDest);
+            var regressionProject = Directory.GetFiles(regressionDest, "*.csproj").Single();
+            log("Parent experiment's hidden suite (regression check) ...");
+            record.RegressionHidden = record.ImplementationBuilds
+                ? await TestRunner.RunAsync(app, Path.GetRelativePath(app, regressionProject), Path.Combine(evalDir, "results", "hidden-regression"), env, timeout, noBuild: false)
+                : new TestProjectResult { Project = Fs.RelativeUnix(app, regressionProject), InfrastructureError = "Implementation does not build." };
+            if (parentEval?.Hidden is { } parentHidden)
+                record.HiddenRegressions = Regressions(
+                    [new TestProjectResult { Project = record.RegressionHidden.Project, Tests = parentHidden.Tests }], [record.RegressionHidden]);
+        }
+
         // (d) Optional mutation control on the workflow's own tests.
         if (mutationControl && run is not null && record.ImplementationBuilds)
             record.RevertedProductionControl = await RevertedProductionControlAsync(c, store, run, baseRecord, evalDir, env, timeout, log);
@@ -214,12 +269,15 @@ public static class Evaluator
             .OrderBy(p => p, StringComparer.Ordinal).ToList();
     }
 
-    public static List<RegressionRecord> Regressions(BaseRecord b, IEnumerable<TestProjectResult> now)
+    public static List<RegressionRecord> Regressions(BaseRecord b, IEnumerable<TestProjectResult> now) => Regressions(b.BaselineTests, now);
+
+    /// <summary>Tests that passed in <paramref name="baselineTests"/> (matched by project) and do not pass now.</summary>
+    public static List<RegressionRecord> Regressions(IReadOnlyList<TestProjectResult> baselineTests, IEnumerable<TestProjectResult> now)
     {
         var list = new List<RegressionRecord>();
         foreach (var project in now)
         {
-            var baseline = b.BaselineTests.FirstOrDefault(t => t.Project.Equals(project.Project, StringComparison.OrdinalIgnoreCase));
+            var baseline = baselineTests.FirstOrDefault(t => t.Project.Equals(project.Project, StringComparison.OrdinalIgnoreCase));
             if (baseline is null) continue;
             var passedAtBaseline = baseline.Tests.Where(t => t.Outcome == TestOutcome.Pass).ToDictionary(t => t.Id, t => t);
             if (project.Tests.Count == 0 && passedAtBaseline.Count > 0)

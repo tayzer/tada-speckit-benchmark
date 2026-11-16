@@ -38,6 +38,8 @@ public sealed class ReviewSetKey
     public string ProtocolSha256 { get; set; } = "";
     public bool ProtocolApproved { get; set; }
     public int Seed { get; set; }
+    /// <summary>True when each change starts from its own parent run (bundles then carry before/ snapshots).</summary>
+    public bool Continuation { get; set; }
     public List<BundleEntry> Bundles { get; set; } = [];
 }
 
@@ -203,7 +205,7 @@ public static class AiReview
         var key = new ReviewSetKey
         {
             SetId = setId, CreatedAt = DateTimeOffset.UtcNow, Seed = seed,
-            ProtocolSha256 = ProtocolSha256(c), ProtocolApproved = IsApproved(c),
+            ProtocolSha256 = ProtocolSha256(c), ProtocolApproved = IsApproved(c), Continuation = c.Continuation is not null,
         };
         var setDir = SetDir(store, setId);
         for (var i = 0; i < ordered.Count; i++)
@@ -267,7 +269,8 @@ public static class AiReview
         var patchText = Scrub(patch.ToString(), run);
         Fs.WriteAtomic(Path.Combine(dir, "changes.patch"), patchText);
         Fs.WriteAtomic(Path.Combine(dir, "files.md"), files.ToString());
-        var failures = Scrub(ExistingTestFailures(store, run), run);
+        var failures = Scrub(ExistingTestFailures(c, store, run), run);
+        if (run.ParentFinalCommit is not null) await ExportBeforeAsync(c, run, Path.Combine(dir, "before"));
         Fs.WriteAtomic(Path.Combine(dir, "existing-test-failures.md"), failures);
         entry.PatchSha256 = Fs.Sha256Text(patchText);
 
@@ -305,19 +308,50 @@ public static class AiReview
         return text.Replace(run.RunId, "<run>", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string ExistingTestFailures(RunStore store, RunRecord run)
+    private static string ExistingTestFailures(ExperimentConfig c, RunStore store, RunRecord run)
     {
         var sb = new StringBuilder("# Existing tests that passed before the change and fail after it\n\n");
-        var eval = Directory.Exists(store.EvaluationsRoot)
-            ? Directory.GetDirectories(store.EvaluationsRoot, "*-" + run.RunId).OrderBy(d => d, StringComparer.Ordinal).LastOrDefault()
-            : null;
-        var path = eval is null ? null : Path.Combine(eval, "evaluation.json");
-        if (path is null || !File.Exists(path)) return sb.AppendLine("Not evaluated.").ToString();
-        var regressions = JsonNode.Parse(File.ReadAllText(path))?["regressions"]?.AsArray() ?? [];
-        if (regressions.Count == 0) return sb.AppendLine("None.").ToString();
-        foreach (var r in regressions)
-            sb.AppendLine($"- `{r?["test"]}` ({r?["project"]}): {r?["message"]?.ToString().Replace("\r", "").Replace("\n", " ")}");
+        var eval = Reporting.MetricsCollector.LatestEvaluation(store, run.RunId, c.ExperimentId, run.ExperimentId);
+        if (eval is null) return sb.AppendLine("Not evaluated.").ToString();
+        if (eval.Regressions.Count == 0) return sb.AppendLine("None.").ToString();
+        foreach (var r in eval.Regressions)
+            sb.AppendLine($"- `{r.Test}` ({r.Project}): {r.Message?.Replace("\r", "").Replace("\n", " ")}");
         return sb.ToString();
+    }
+
+    private static readonly string[] BinaryExtensions = [".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg", ".woff", ".woff2", ".ttf", ".eot", ".map", ".dll", ".exe", ".pdb", ".nupkg", ".zip"];
+
+    /// <summary>
+    /// Continuation: the change's own starting point (the parent run's final tree), filtered with the same exclude,
+    /// scaffold and collapse rules as the change, minus binaries and third-party wwwroot/lib.
+    /// </summary>
+    private static async Task ExportBeforeAsync(ExperimentConfig c, RunRecord run, string beforeDir)
+    {
+        var a = c.AiReview;
+        var tmp = beforeDir + "-checkout";
+        if (Directory.Exists(tmp)) Directory.Delete(tmp, recursive: true);
+        Directory.CreateDirectory(Path.GetDirectoryName(tmp)!);
+        await Git.RunAsync(Path.GetDirectoryName(tmp)!, "clone", "--quiet", "--no-hardlinks", "--no-checkout", run.WorkspacePath, Path.GetFileName(tmp));
+        await Git.RunAsync(tmp, "checkout", "--quiet", "--detach", run.ParentFinalCommit!);
+        var files = (await Git.RunAsync(tmp, "ls-files")).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var path in files)
+        {
+            if (Glob.AnyMatch(path, a.ExcludeGlobs) || Glob.AnyMatch(path, a.ScaffoldGlobs) || Glob.AnyMatch(path, a.CollapseGlobs)) continue;
+            if (BinaryExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase)) continue;
+            if (path.Contains("/wwwroot/lib/", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".min.js", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".min.css", StringComparison.OrdinalIgnoreCase)) continue;
+            var source = Path.Combine(tmp, path.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(source)) continue;
+            var target = Path.Combine(beforeDir, path.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(source, target);
+        }
+        ClearReadOnlyAndDelete(tmp);
+    }
+
+    private static void ClearReadOnlyAndDelete(string dir)
+    {
+        foreach (var f in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories)) File.SetAttributes(f, FileAttributes.Normal);
+        Directory.Delete(dir, recursive: true);
     }
 
     // ---------------------------------------------------------------- running reviewers
@@ -347,12 +381,15 @@ public static class AiReview
                     var second = key.Bundles[pass % 2];
                     var name = $"code-{Slug(reviewer.Model)}-pass{pass}";
                     var work = PrepareWork(store, key.SetId, name, common);
-                    Fs.WriteAtomic(Path.Combine(work, "README.md"),
-                        $"# Original application source\n\nThe unchanged starting version of the application is at:\n\n    {baseRepo}\n\nRead it with the Read, Glob and Grep tools. Do not modify it.\n");
+                    Fs.WriteAtomic(Path.Combine(work, "README.md"), key.Continuation
+                        ? "# Starting versions\n\nThe two changes start from different versions of the application, because each continues earlier work.\n"
+                          + "The version each change started from is in `change-A/before/` and `change-B/before/` (source and tests; binaries and generated files omitted).\n"
+                          + "Judge each change against its own starting version. Do not modify these files.\n"
+                        : $"# Original application source\n\nThe unchanged starting version of the application is at:\n\n    {baseRepo}\n\nRead it with the Read, Glob and Grep tools. Do not modify it.\n");
                     Fs.CopyDirectory(Path.Combine(setDir, "bundles", first.BundleId), Path.Combine(work, "change-A"));
                     Fs.CopyDirectory(Path.Combine(setDir, "bundles", second.BundleId), Path.Combine(work, "change-B"));
                     log($"Code review {name}: A={first.BundleId}, B={second.BundleId} ...");
-                    var (call, json) = await CallWithRetryAsync(c, store, key.SetId, reviewer, name, work, codePrompt, [baseRepo], ParseCodeReview, ct);
+                    var (call, json) = await CallWithRetryAsync(c, store, key.SetId, reviewer, name, work, codePrompt, key.Continuation ? [] : [baseRepo], ParseCodeReview, ct);
                     summary.Calls.Add(call);
                     if (json is not { } parsed) continue;
                     foreach (var (label, bundle) in new[] { ("A", first), ("B", second) })

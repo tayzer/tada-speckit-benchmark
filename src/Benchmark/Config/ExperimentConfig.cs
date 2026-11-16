@@ -16,6 +16,8 @@ public sealed class ExperimentConfig
     public PathsConfig Paths { get; set; } = new();
     public EvidenceConfig Evidence { get; set; } = new();
     public AiReviewConfig AiReview { get; set; } = new();
+    /// <summary>Set when this experiment continues each workflow's run from an earlier experiment (docs/continuation.md).</summary>
+    public ContinuationConfig? Continuation { get; set; }
     public string PricingFile { get; set; } = "pricing/models.json";
     public string DecisionsFile { get; set; } = "decisions.json";
 
@@ -172,6 +174,24 @@ public sealed class AiReviewConfig
     public decimal MaxBudgetUsdPerCall { get; set; } = 10m;
 }
 
+/// <summary>
+/// A continuation experiment starts each workflow from the final commit of its own pinned parent run (so each arm
+/// keeps its own workflow state), and re-runs the parent experiment's hidden suite as a regression check.
+/// </summary>
+public sealed class ContinuationConfig
+{
+    /// <summary>Parent experiment folder name under experiments/, e.g. "checkout-retry".</summary>
+    public string ParentExperiment { get; set; } = "";
+    /// <summary>workflow id -> parent run id. Owner-approved; both must be sealed runs of the parent experiment.</summary>
+    public Dictionary<string, string> ParentRuns { get; set; } = new();
+    /// <summary>The parent experiment's hidden suite, re-run unchanged as a regression check.</summary>
+    public string RegressionSuite { get; set; } = "";
+    public string? RegressionSuiteSha256 { get; set; }
+    public string RegressionSuiteDestination { get; set; } = "tests/__HiddenRegression";
+    /// <summary>How the task was chosen (shown in the report).</summary>
+    public string TaskSelection { get; set; } = "";
+}
+
 public sealed class AiReviewerConfig
 {
     public string Model { get; set; } = "";
@@ -259,6 +279,12 @@ public static partial class ConfigValidator
                 if (!File.Exists(c.ResolveExperimentPath(p))) errors.Add($"Compatibility patch not found: {p}");
             if (!Directory.Exists(c.HiddenSuitePath)) errors.Add($"Hidden suite not found: {c.HiddenSuitePath}");
             if (Fs.IsUnder(c.DataRoot, c.HarnessRoot)) errors.Add("paths.dataRoot must be outside the harness repository so agents cannot reach the evaluator via relative paths.");
+            if (c.Continuation is { } k)
+            {
+                if (k.ParentRuns.Count == 0) errors.Add("continuation.parentRuns is empty.");
+                foreach (var w in c.Workflows.Where(w => !k.ParentRuns.ContainsKey(w.Id))) errors.Add($"continuation.parentRuns has no parent run for workflow '{w.Id}'.");
+                if (!Directory.Exists(c.ResolveHarnessPath(k.RegressionSuite))) errors.Add($"continuation.regressionSuite not found: {k.RegressionSuite}");
+            }
             if (c.AiReview.Reviewers.Count > 0)
             {
                 var dir = c.ResolveExperimentPath(c.AiReview.PromptsDirectory);
