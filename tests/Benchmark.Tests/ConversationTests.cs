@@ -108,3 +108,14 @@ public class ConversationTests
         Assert.Contains(entries, e => e.Kind == EntryKind.AssistantText);
     }
 }
+
+public sealed class ShellCommandCountTests
+{
+    [Fact]
+    public void Shell_commands_typed_by_the_human_count_as_human_inputs()
+    {
+        var s = new Benchmark.Telemetry.InteractionSummary { HumanPrompts = 2, LocalCommands = ["! dotnet tada baseline approve --review x --by y", "/cost"] };
+        Assert.Equal(1, s.ShellCommands);
+        Assert.Equal(3, s.TotalHumanInputs);
+    }
+}

@@ -59,6 +59,8 @@ public sealed class InteractionSummary
     public int ToolRejections { get; set; }
     public int Interruptions { get; set; }
     public List<string> LocalCommands { get; set; } = [];
+    /// <summary>Shell commands the human typed with `!` (e.g. TADA baseline approvals). Counted as human inputs.</summary>
+    public int ShellCommands => LocalCommands.Count(c => c.StartsWith("! ", StringComparison.Ordinal));
     /// <summary>Sum of agent-idle gaps before each human input, each gap capped at <see cref="GapCapSeconds"/>.</summary>
     public double HumanWaitSeconds { get; set; }
     public double GapCapSeconds { get; set; }
@@ -66,7 +68,7 @@ public sealed class InteractionSummary
     public List<string> DecisionsMatched { get; set; } = [];
     public List<HumanTurn> Turns { get; set; } = [];
     public List<string> Warnings { get; set; } = [];
-    public int TotalHumanInputs => HumanPrompts + SlashCommands + QuestionsAnswered + ToolRejections + Interruptions;
+    public int TotalHumanInputs => HumanPrompts + SlashCommands + ShellCommands + QuestionsAnswered + ToolRejections + Interruptions;
 }
 
 /// <summary>

@@ -102,7 +102,7 @@ public static class SimpleRun
         Console.WriteLine($"  Tokens      in {u.Totals.Input:N0} | out {u.Totals.Output:N0} | cache read {u.Totals.CacheRead:N0} | cache write {u.Totals.CacheCreation:N0}");
         Console.WriteLine($"  Cost        Claude Code reported {(u.CliReportedCostUsd is { } cost ? "$" + cost.ToString("0.00") : "unavailable")}, pricing-table estimate {(u.EstimatedCostUsd is { } est ? "$" + est.ToString("0.00") : "unavailable")}{(u.Complete ? "" : " (INCOMPLETE telemetry)")}");
         if (ia is not null)
-            Console.WriteLine($"  Human       {ia.TotalHumanInputs} input(s): {ia.HumanPrompts} message(s), {ia.SlashCommands} command(s), {ia.QuestionsAnswered} answer(s), {ia.ToolRejections} rejection(s); agent waited on you {Telemetry.Conversation.Dur(ia.HumanWaitSeconds)}");
+            Console.WriteLine($"  Human       {ia.TotalHumanInputs} input(s): {ia.HumanPrompts} message(s), {ia.SlashCommands} command(s), {ia.ShellCommands} shell command(s), {ia.QuestionsAnswered} answer(s), {ia.ToolRejections} rejection(s); agent waited on you {Telemetry.Conversation.Dur(ia.HumanWaitSeconds)}");
         if (e?.Hidden is { } h)
             Console.WriteLine($"  Hidden tests {h.Passed} pass, {h.Failed} fail, {h.Indeterminate} indeterminate; regressions {e.Regressions.Count}{(draft ? " (DRAFT suite)" : "")}");
         foreach (var w in u.Warnings.Concat(ia?.Warnings ?? [])) Console.WriteLine("  warning: " + w);
@@ -127,7 +127,7 @@ public static class SimpleRun
             // never mixes old and new versions under the new version's label. Pass --runs to compare explicitly.
             var stale = runs.Where(r => !MatchesCurrentPin(c, r)).ToList();
             foreach (var r in stale)
-                Console.WriteLine($"Skipping {r.RunId}: made with {r.WorkflowId} '{r.Setup.Version}', current pin is '{c.Workflows.FirstOrDefault(w => w.Id == r.WorkflowId)?.Version}'.");
+                Console.WriteLine($"Skipping {r.RunId}: {r.WorkflowId} version or opening message differs from the current configuration.");
             runs = runs.Except(stale).ToList();
         }
         var report = ReportGenerator.Build(c, store, runs, await WorkspaceManager.HarnessCommitAsync(c.HarnessRoot));
@@ -148,6 +148,9 @@ public static class SimpleRun
         if (w is null) return false;
         if (r.Synthetic || string.IsNullOrEmpty(r.Setup.Version)) return true;
         if (r.Setup.Version != w.Version) return false;
+        // A changed opening message (e.g. "{prompt}" -> "/speckit-specify {prompt}") is a different protocol.
+        if (!string.IsNullOrEmpty(r.InitialMessage)
+            && r.InitialMessage != w.InitialMessageTemplate.Replace("{prompt}", c.PromptText, StringComparison.Ordinal)) return false;
         return w.PluginSha256 is null || string.Equals(r.Setup.PluginSha256, w.PluginSha256, StringComparison.OrdinalIgnoreCase);
     }
 }

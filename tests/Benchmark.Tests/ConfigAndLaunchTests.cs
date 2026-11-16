@@ -269,5 +269,13 @@ public sealed class ComparisonPinTests
             "42f1429b0458c5c877b3bf5b093d7f8a10b760a3 (plugin 0.1.0-alpha.13, unreleased source build)",
             "b2199946ff44fc810611c466c09a65ede9d4fc3add4e486554e8abf92d6dd50d")));
         Assert.False(Benchmark.Cli.SimpleRun.MatchesCurrentPin(c, Run(tada.Version, "b2199946ff44fc810611c466c09a65ede9d4fc3add4e486554e8abf92d6dd50d")));
+        var spec = c.Workflows.Single(w => w.Id == "speckit");
+        Benchmark.Runs.RunRecord Spec(string message) => new()
+        {
+            WorkflowId = "speckit", InitialMessage = message,
+            Setup = new Benchmark.Runs.WorkflowSetupRecord { WorkflowId = "speckit", Version = spec.Version },
+        };
+        Assert.True(Benchmark.Cli.SimpleRun.MatchesCurrentPin(c, Spec(spec.InitialMessageTemplate.Replace("{prompt}", c.PromptText))));
+        Assert.False(Benchmark.Cli.SimpleRun.MatchesCurrentPin(c, Spec(c.PromptText)));
     }
 }

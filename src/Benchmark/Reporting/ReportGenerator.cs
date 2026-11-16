@@ -171,6 +171,7 @@ public static class ReportGenerator
             ("Human inputs, total", m => m.Interaction.TotalHumanInputs.ToString()),
             ("Typed messages", m => m.Interaction.HumanPrompts.ToString()),
             ("Slash commands", m => m.Interaction.SlashCommands == 0 ? "0" : $"{m.Interaction.SlashCommands} ({string.Join(", ", m.Interaction.SlashCommandNames)})"),
+            ("Shell commands typed (`!`, e.g. baseline approvals)", m => m.Interaction.ShellCommands.ToString()),
             ("Agent questions (AskUserQuestion) / answered", m => $"{m.Interaction.AgentQuestions} / {m.Interaction.QuestionsAnswered}"),
             ("Tool calls rejected", m => m.Interaction.ToolRejections.ToString()),
             ("Interruptions", m => m.Interaction.Interruptions.ToString()),
