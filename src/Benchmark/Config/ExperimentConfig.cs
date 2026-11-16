@@ -164,6 +164,8 @@ public sealed class AiReviewConfig
     public List<string> ExcludeGlobs { get; set; } = [];
     /// <summary>Generated files shown only as a one-line stub with their size.</summary>
     public List<string> CollapseGlobs { get; set; } = [];
+    /// <summary>Files a workflow tool generated into the repository: listed as present but not shown (they would only add tool boilerplate).</summary>
+    public List<string> ScaffoldGlobs { get; set; } = [];
     /// <summary>Words that reveal a workflow. Counted per bundle (never redacted) and reported after unblinding.</summary>
     public List<string> LeakTerms { get; set; } = [];
     public int TimeoutMinutes { get; set; } = 30;

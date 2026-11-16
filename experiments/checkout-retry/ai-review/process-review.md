@@ -28,11 +28,13 @@ normal workflow steps, not corrections.
 
 - `necessaryQuestionsIdentified`: business questions the agent raised that `decisions.md` shows were
   genuinely needed.
-- `incorrectAssumptions`: assumptions the agent acted on that contradict `decisions.md` or the code.
+- `incorrectAssumptions`: assumptions the agent stated or acted on that contradict `decisions.md`.
 - `verificationOmissions`: checks the agent should have run but did not (for example the existing test
   suite, a concurrency test), with evidence from `chat.md`.
 
-Cite `H<n>` numbers or quote short phrases as evidence. Do not modify any file.
+Cite `H<n>` numbers or quote short phrases as evidence. You cannot see the final code, so do not state
+what the code does or would do at runtime; report only what the agent said, decided, ran or skipped, and
+how that compares with `decisions.md`. Do not modify any file.
 
 ## Output
 

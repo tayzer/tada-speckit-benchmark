@@ -11,7 +11,9 @@ change on its own merits against the rubric, then compare them.
 - `rubric.md`: the scoring rubric. Use its dimension names exactly.
 - `change-A/` and `change-B/`, each with:
   - `changes.patch`: the change as a unified diff.
-  - `files.md`: the files in the change, with line counts. Generated files are listed but not shown.
+  - `files.md`: every file in the change, with line counts. Generated files (lock files, migration
+    designers) and tool-generated boilerplate are listed but not shown. They are part of the change and
+    present in the repository; do not treat them as missing.
   - `after/`: the full post-change text of every shown file.
   - `existing-test-failures.md`: tests from the original test suite that passed before the change and
     fail after it.
@@ -21,8 +23,9 @@ work was carried out (notes, plans, tool records). Do not speculate about them.
 
 ## Rules
 
-1. Read the code. Base every score on specific evidence and cite it as `path:line` or `path` with the
-   identifier concerned.
+1. Read the code. Base every score on specific evidence and cite it as `path:line`, where `line` is the
+   line number in the post-change file under `after/` (not a line in `changes.patch`). For a deleted
+   file, cite the file and identifier.
 2. Judge quality relative to the task and the decisions, not size. More code or more tests is not
    better in itself; neither is less. Build and configuration changes count as part of the change.
 3. Score A and B independently against the rubric anchors first; only then write the comparison. Do

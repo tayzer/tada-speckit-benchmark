@@ -21,16 +21,16 @@ DRAFT. `compare` shows the latest review covering the compared runs.
 
 **Blinded code review.** Each reviewer gets both changes as `change-A/` and `change-B/` in one session and
 scores each against `experiments/checkout-retry/ai-review/rubric.md` (the same six dimensions as
-`docs/engineering-quality-rubric.md`), with `path:line` evidence. Each reviewer runs `aiReview.passes`
+`docs/engineering-quality-rubric.md`), with `path:line` evidence (line numbers in the post-change files). Each reviewer runs `aiReview.passes`
 times (default 2); passes alternate which change is shown first as A. A run's scores are therefore listed
 per pass, for example `opus-5-5 4/3`.
 
 Each bundle contains:
 
-- `changes.patch`: the run's final diff, minus `aiReview.excludeGlobs`;
+- `changes.patch`: the run's final diff, minus excluded, collapsed and scaffold files;
 - `after/`: the full post-change text of every shown file;
 - `files.md`: every non-excluded file with line counts; `aiReview.collapseGlobs` files (lock files, EF
-  migration designers) are listed but not shown;
+  migration designers) and `aiReview.scaffoldGlobs` files are listed but not shown;
 - `existing-test-failures.md`: original tests that passed at baseline and fail after the change (no hidden
   test results are shown, to avoid anchoring).
 
@@ -44,9 +44,15 @@ workflow, so this part is unblinded; it is close to a factual classification.
 
 ## Blinding: what is removed, and what leaks
 
-Removed: workflow process records and tool scaffolding that are not part of the product, namely
-`.specify/**`, `specs/**`, `.claude/**`, `.tada/**`, `tada.json`, `features/README.md` and TADA's generated
-acceptance plumbing (`TadaAcceptance.cs`, `TadaRuntimeCheckpoint.cs`, `Tada.Acceptance.targets`).
+Removed: workflow process records that are not part of the product, namely `.specify/**`, `specs/**`,
+`.claude/**` and `.tada/**`.
+
+Listed but not shown (`aiReview.scaffoldGlobs`): tool-generated boilerplate that is in the repository but
+adds nothing to judge, namely `tada.json`, `features/README.md` and TADA's generated acceptance plumbing
+(`TadaAcceptance.cs`, `TadaRuntimeCheckpoint.cs`, `Tada.Acceptance.targets`). `files.md` lists these files
+as present, so the reviewer does not treat code that uses them as depending on missing files. (The first
+draft review, set `20261116-153013-5d7941`, removed them completely, and both reviewers penalised TADA for
+"types and targets not in the change". That set is superseded.)
 
 Kept on purpose: every change that affects building, running or testing the product, even when it reveals
 the workflow. That includes `Directory.Build.props`, `NuGet.Config`, `dotnet-tools.json`, `.gitignore`,
@@ -93,6 +99,8 @@ refuse to run.
   - **REVIEWERS DISAGREE**: reviewers' mean scores for a dimension differ by 1.5 or more, or their
     corrective-prompt classifications differ.
   - **Blinding leak**: leak terms were found, or the reviewer reported clues.
+  - **CITATIONS**: `path:line` evidence pointing past the end of the cited post-change file (usually patch
+    line numbers), so that evidence cannot be checked as given.
   - **DRAFT**: the protocol is not approved.
 - Raw output (`calls/*.stdout.jsonl`), the exact arguments and the settings of every call are kept under
   `<dataRoot>/ai-reviews/<setId>/calls/`.

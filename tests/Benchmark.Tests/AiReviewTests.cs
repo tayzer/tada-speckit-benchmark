@@ -131,3 +131,27 @@ public sealed class AiReviewTests
         Assert.False(AiReview.IsApproved(c));
     }
 }
+
+public sealed class CitationCheckTests
+{
+    [Fact]
+    public void Citations_past_the_end_of_the_post_change_file_are_counted()
+    {
+        var after = TestSupport.TempDir("ai-review-after");
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(after, "src", "Web"));
+            File.WriteAllLines(Path.Combine(after, "src", "Web", "Checkout.cs"), Enumerable.Range(1, 100).Select(i => $"line {i}"));
+            var review = new CodeReviewOfChange
+            {
+                Evidence = new()
+                {
+                    ["maintainability"] = "See src/Web/Checkout.cs:42 and Checkout.cs:513-518.",
+                    ["test-quality"] = "Unknown.cs:5 is not in the bundle.",
+                },
+            };
+            Assert.Equal((2, 1), AiReview.CheckCitations(review, after));
+        }
+        finally { Directory.Delete(after, recursive: true); }
+    }
+}

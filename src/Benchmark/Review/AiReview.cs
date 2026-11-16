@@ -72,6 +72,9 @@ public sealed class CodePass
     public string Label { get; set; } = "";
     public CodeReviewOfChange Review { get; set; } = new();
     public string Comparison { get; set; } = "";
+    /// <summary>`path:line` citations in the evidence, and how many point past the end of the cited post-change file.</summary>
+    public int Citations { get; set; }
+    public int CitationsOutOfRange { get; set; }
 }
 
 public sealed class AiRunSummary
@@ -159,7 +162,7 @@ public static class AiReview
         var definition = Json.Serialize(new
         {
             prompts,
-            a.Reviewers, a.Passes, a.ExcludeGlobs, a.CollapseGlobs, a.LeakTerms,
+            a.Reviewers, a.Passes, a.ExcludeGlobs, a.CollapseGlobs, a.ScaffoldGlobs, a.LeakTerms,
             tools = ReviewerAllowedTools, denied = ReviewerDisallowedTools,
             dimensions = Rubric.Dimensions,
         });
@@ -234,6 +237,12 @@ public static class AiReview
         {
             var (added, removed, status) = counts.TryGetValue(path, out var n) ? n : (0, 0, "?");
             if (Glob.AnyMatch(path, a.ExcludeGlobs)) { entry.Excluded.Add(path); continue; }
+            if (Glob.AnyMatch(path, a.ScaffoldGlobs))
+            {
+                entry.Collapsed.Add(path);
+                files.AppendLine($"| `{path}` | {status} | {added} | {removed} | no (tool-generated boilerplate; present in the repository) |");
+                continue;
+            }
             if (Glob.AnyMatch(path, a.CollapseGlobs))
             {
                 entry.Collapsed.Add(path);
@@ -350,7 +359,8 @@ public static class AiReview
                     {
                         var runSummary = summary.Runs.Single(r => r.BundleId == bundle.BundleId);
                         if (!runSummary.Code.TryGetValue(reviewer.Model, out var list)) runSummary.Code[reviewer.Model] = list = [];
-                        list.Add(new CodePass { Pass = pass, Label = label, Review = parsed.Changes[label], Comparison = parsed.Comparison });
+                        var (cited, outOfRange) = CheckCitations(parsed.Changes[label], Path.Combine(setDir, "bundles", bundle.BundleId, "after"));
+                        list.Add(new CodePass { Pass = pass, Label = label, Review = parsed.Changes[label], Comparison = parsed.Comparison, Citations = cited, CitationsOutOfRange = outOfRange });
                     }
                 }
 
@@ -496,6 +506,28 @@ public static class AiReview
         return roots;
     }
 
+    /// <summary>
+    /// Counts `file.ext:N` citations in the evidence and those whose line N is past the end of the matching file in
+    /// after/ (matched by path suffix). Out-of-range lines usually mean the reviewer cited patch lines.
+    /// </summary>
+    public static (int Cited, int OutOfRange) CheckCitations(CodeReviewOfChange review, string afterDir)
+    {
+        if (!Directory.Exists(afterDir)) return (0, 0);
+        var files = Directory.EnumerateFiles(afterDir, "*", SearchOption.AllDirectories)
+            .Select(f => (Rel: Fs.RelativeUnix(afterDir, f), Lines: File.ReadLines(f).Count())).ToList();
+        int cited = 0, outOfRange = 0;
+        foreach (var text in review.Evidence.Values)
+            foreach (Match m in Regex.Matches(text, @"([\w./-]+\.[A-Za-z]+):(\d+)"))
+            {
+                var name = m.Groups[1].Value.TrimStart('.', '/');
+                var match = files.Where(f => f.Rel.EndsWith(name, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (match.Count != 1) continue;
+                cited++;
+                if (int.Parse(m.Groups[2].Value) > match[0].Lines) outOfRange++;
+            }
+        return (cited, outOfRange);
+    }
+
     // ---------------------------------------------------------------- parsing
 
     public sealed record CodeReviewOutput(Dictionary<string, CodeReviewOfChange> Changes, string Comparison);
@@ -559,6 +591,9 @@ public static class AiReview
         foreach (var call in s.Calls.Where(c => c.Succeeded && c.Attempts > 1)) flags.Add($"Call {call.Name} needed a retry (first reply unusable).");
         foreach (var r in s.Runs)
         {
+            foreach (var (reviewer, passes) in r.Code)
+                foreach (var p in passes.Where(p => p.CitationsOutOfRange > 0))
+                    flags.Add($"CITATIONS: {reviewer} pass {p.Pass} on {r.WorkflowId}: {p.CitationsOutOfRange} of {p.Citations} line citations point past the end of the file (probably patch lines); check that evidence by hand.");
             foreach (var (reviewer, passes) in r.Code)
                 foreach (var d in Rubric.Dimensions)
                 {

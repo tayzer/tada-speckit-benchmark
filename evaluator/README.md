@@ -34,7 +34,7 @@ The suite works **black-box**:
 | HT05 | Failure after the order commits, before the response; retry → exactly one order | ✔ | D5 |
 | HT06 | New checkout with the **same items** after a completed order → second order | ✔ | D1, D6 |
 | HT07 | New checkout with different items → second order | | D6 |
-| HT08 | Reloaded checkout page while the first submission is in flight → exactly one order (retry) | | D7 |
+| HT08 | Reloaded checkout page while the first submission is in flight → exactly one order (retry), and neither submission ends in a 5xx (added 2026-11-16, draft) | | D7, D3 |
 | HT09 | Happy path still works: confirmation page, 1 order, basket emptied | ✔ | — |
 | HT10 | Empty-basket checkout: no order, no 5xx | | — |
 | HT11 | Two different customers checking out concurrently each get their order | | — |
@@ -50,6 +50,11 @@ Run with `benchmark evaluate --control <patch|baseline> --allow-draft`:
 | `baseline` (pinned eShop, no change) | Duplicate scenarios fail; legitimate purchases and compatibility pass | HT02, HT03, HT05, HT12, HT13 FAIL. All others PASS. HT08 pending. |
 | `controls/reference-transactional-checkout.patch` | Everything passes | 12 PASS, HT08 pending |
 | `controls/seeded-overblocking.patch` (blocks any order within 10 minutes) | Legitimate-purchase tests catch it | HT06 and HT07 FAIL (plus the race tests) |
+
+Re-validation after the draft HT08 change (2026-11-16): `baseline` 7 PASS / 6 FAIL including HT08;
+reference patch 13/13 PASS. Both benchmark runs (Spec Kit `d26ba9`, TADA `485b83`) now fail HT08. In both,
+the first, still-in-flight submission ends in HTTP 500 after the reloaded resubmission has placed the
+order. Exactly one order is created in both.
 
 The reference patch is an evaluator-side control only. It is one acceptable design, not the expected one.
 

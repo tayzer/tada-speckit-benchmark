@@ -124,10 +124,13 @@
     "passes": 2,
     "excludeGlobs": [
       ".specify/**", "specs/**", ".claude/**",
-      ".tada/**", "tada.json", "features/README.md",
-      "tests/Acceptance/TadaAcceptance.cs", "tests/Acceptance/TadaRuntimeCheckpoint.cs", "tests/Acceptance/Tada.Acceptance.targets"
+      ".tada/**"
     ],
     "collapseGlobs": [ "**/packages.lock.json", "**/Migrations/*.Designer.cs" ],
+    "scaffoldGlobs": [
+      "tada.json", "features/README.md",
+      "tests/Acceptance/TadaAcceptance.cs", "tests/Acceptance/TadaRuntimeCheckpoint.cs", "tests/Acceptance/Tada.Acceptance.targets"
+    ],
     "leakTerms": [ "tada", "speckit", "spec-kit", "spec kit", ".specify" ],
     "timeoutMinutes": 30,
     "maxBudgetUsdPerCall": 10

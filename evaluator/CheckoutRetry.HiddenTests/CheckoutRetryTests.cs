@@ -141,7 +141,7 @@ public sealed class CheckoutRetryTests
         Assert.Equal(2, await host.Db.OrderCountAsync(Demo));
     }
 
-    [Fact] // D7
+    [Fact] // D7 (+ D3: a duplicate in-flight submission must not end in a server error)
     public async Task HT08_RetryFromFreshCheckoutPageWhileFirstInFlight()
     {
         if (D7ExpectedOrdersForFreshPageRetry is not { } expected)
@@ -156,10 +156,12 @@ public sealed class CheckoutRetryTests
         var first = customer.SubmitCheckoutAsync(form);
         await Task.Delay(500);
         var fresh = await customer.OpenCheckoutAsync();
-        await customer.SubmitCheckoutAsync(fresh);
-        await first;
+        var second = await customer.SubmitCheckoutAsync(fresh);
+        var firstResult = await first;
         await host.Faults.WaitForIdleAsync(TimeSpan.FromSeconds(60));
         Assert.Equal(expected, await host.Db.OrderCountAsync(Demo));
+        Assert.False(firstResult.ServerError, $"The first submission ended in a server error (status {firstResult.Status}).");
+        Assert.False(second.ServerError, $"The resubmission from the reloaded checkout page ended in a server error (status {second.Status}).");
     }
 
     [Fact] // existing behaviour — critical
