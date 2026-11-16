@@ -10,10 +10,10 @@
   workflows[tada].pluginSha256 in experiment.json.
 #>
 param(
-    [string]$Tag = 'v0.1.0-alpha.13.105',
-    [string]$Asset = 'TADA-plugin-0.1.0-alpha.13.105.zip',
-    [string]$ZipSha256 = 'dbae497d0c61362c0ef017c03c81a23942f763d55bd626a0ca3e314e2782c543',
-    [string]$OutputRoot = (Join-Path (Split-Path $PSScriptRoot -Parent) '..\BenchmarkData\tada-release-0.1.0-alpha.13.105'),
+    [string]$Tag = 'v0.1.0-alpha.13.107',
+    [string]$Asset = 'TADA-plugin-0.1.0-alpha.13.107.zip',
+    [string]$ZipSha256 = '50dbe79d80964c2f1ff8e7845bbcfdd6c348cec7f50093c46f1d6594ae0669e5',
+    [string]$OutputRoot = (Join-Path (Split-Path $PSScriptRoot -Parent) '..\BenchmarkData\tada-release-0.1.0-alpha.13.107'),
     [string]$Repository = 'tayzer/TADA'
 )
 $ErrorActionPreference = 'Stop'
