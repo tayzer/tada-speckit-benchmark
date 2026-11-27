@@ -1,0 +1,30 @@
+  @AC_SHIPMENT_07
+  Scenario: The fulfilled amount is the minimum positive total
+    Given an active reservation of 6 units
+    When 2 units are confirmed with key "shift-481"
+    Then the confirmation records total 6 and fulfilled 2
+    When the new reservation total is 1
+    Then the last response is 409
+    And the reservation has total 6 and fulfilled 2
+    And 4 units are available
+    When the new reservation total is 2
+    Then the last response is 200
+    And the reservation has total 2 and fulfilled 2
+    And 8 units are available
+
+  @AC_SHIPMENT_08
+  Scenario: An insufficient-stock resize preserves the receipt and state
+    Given an active reservation of 6 units
+    When 2 units are confirmed with key "shift-481"
+    Then the confirmation records total 6 and fulfilled 2
+    When the new reservation total is 11
+    Then the last response is 409
+    And the reservation has total 6 and fulfilled 2
+    And 4 units are available
+    When the new reservation total is 4
+    Then the last response is 200
+    When the inventory API restarts
+    And 2 units are confirmed with key "shift-481"
+    Then the confirmation records total 6 and fulfilled 2
+    And the reservation has total 4 and fulfilled 2
+    And 6 units are available

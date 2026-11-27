@@ -1,0 +1,8 @@
+bin/
+obj/
+TestResults/
+.worker-tmp/
+.tada/runs/
+.tada/scratch/
+*.sqlite
+*.sqlite-*

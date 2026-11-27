@@ -12,6 +12,10 @@ are scored by an **independent hidden evaluator** that neither workflow can see.
 > No real TADA vs Spec Kit run has been executed. The evaluator's acceptance criteria and the business
 > decisions register are **DRAFT proposals awaiting the benchmark owner**.
 
+## Unattended Codex comparison
+
+The Codex batch compares TADA, GitHub Spec Kit, OpenSpec, and plain Codex on two inventory tasks. Use `./bench.ps1 batch --suite codex-sdd --dry-run` to generate a synthetic report with zero model calls. The live command requires registered fixture approvals and a dedicated Windows worker. See the [Codex batch runbook](docs/codex-batch.md).
+
 ## Layout
 
 ```

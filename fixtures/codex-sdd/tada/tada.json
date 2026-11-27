@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "oracleRoots": ["Acceptance", "features"],
+  "execution": {
+    "project": "Acceptance/Inventory.Acceptance.csproj",
+    "assembly": "Inventory.Acceptance.dll",
+    "messagesFile": "tada-messages.ndjson",
+    "timeoutSeconds": 90,
+    "sutProject": "src/Inventory/Inventory.csproj",
+    "sutAssembly": "Inventory.dll"
+  },
+  "requirementPrefix": "REQ_",
+  "scenarioPrefix": "AC_",
+  "implementationRoots": ["src/Inventory"]
+}

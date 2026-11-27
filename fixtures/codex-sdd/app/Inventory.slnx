@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/Inventory/Inventory.csproj" />
+  <Project Path="tests/AgentTests/AgentTests.csproj" />
+</Solution>
