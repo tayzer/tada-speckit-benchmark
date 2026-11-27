@@ -71,16 +71,16 @@ public static class Fs
     private static readonly string[] IgnoredDirs = ["bin", "obj", ".vs", "TestResults", ".git"];
 
     /// <summary>Deterministic hash of a directory tree (relative path + content hash), ignoring build output.</summary>
-    public static string Sha256Directory(string root)
+    public static string Sha256Directory(string root, bool includeBuildOutput = false)
     {
-        var entries = EnumerateFilesSorted(root)
+        var entries = EnumerateFilesSorted(root, includeBuildOutput)
             .Select(f => $"{RelativeUnix(root, f)}:{Sha256File(f)}");
         return Sha256Text(string.Join("\n", entries));
     }
 
-    public static IEnumerable<string> EnumerateFilesSorted(string root) =>
+    public static IEnumerable<string> EnumerateFilesSorted(string root, bool includeBuildOutput = false) =>
         Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
-            .Where(f => !RelativeUnix(root, f).Split('/').Any(seg => IgnoredDirs.Contains(seg, StringComparer.OrdinalIgnoreCase)))
+            .Where(f => includeBuildOutput || !RelativeUnix(root, f).Split('/').Any(seg => IgnoredDirs.Contains(seg, StringComparer.OrdinalIgnoreCase)))
             .OrderBy(f => RelativeUnix(root, f), StringComparer.Ordinal);
 
     public static string RelativeUnix(string root, string path) =>

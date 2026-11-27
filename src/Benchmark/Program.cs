@@ -1,3 +1,4 @@
+using Benchmark.Batch;
 using Benchmark.Claude;
 using Benchmark.Cli;
 using Benchmark.Config;
@@ -16,6 +17,14 @@ public static class Program
 {
     public const string Usage = """
         bench <command> [options]              (default --experiment experiments/checkout-retry)
+
+        Codex comparison
+          batch --suite codex-sdd|codex-sdd-handoff [--dry-run | --preflight-only] [--repeats N] [--seed N] [--model ID] [--config PATH] [--approvals DIR] [--out DIR]
+          batch-report --batch DIR
+          batch-resume --batch DIR [--config PATH] [--approvals DIR] [--out DIR]
+          batch-reevaluate --batch DIR [--retry-openspec] [--config PATH] [--out DIR]
+          batch-controls [--suite codex-sdd|codex-sdd-handoff] --out DIR --feed DIR
+          batch-fixtures [--suite codex-sdd|codex-sdd-handoff] --out DIR (--feed DIR --tada-plugin DIR | --register)
 
         Everyday use
           run <workflow>          Fresh workspace, open Claude Code with the task, and when you exit:
@@ -68,6 +77,8 @@ public static class Program
     public static async Task<int> RunAsync(Args args, CancellationToken ct)
     {
         var command = args.Positional[0].ToLowerInvariant();
+        if (command is "batch" or "batch-report" or "batch-resume" or "batch-reevaluate" or "batch-controls" or "batch-fixtures")
+            return await CodexBatch.RunAsync(command, args, Log, ct);
         if (command == "dry-run")
         {
             var outDir = args.Get("out") ?? Path.Combine(Path.GetTempPath(), "benchmark-dry-run-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss"));

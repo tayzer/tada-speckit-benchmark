@@ -1,0 +1,18 @@
+<Project Sdk="MSTest.Sdk/4.5.2">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+    <UseVSTest>false</UseVSTest>
+    <TestingExtensionsProfile>None</TestingExtensionsProfile>
+    <ReqnrollUseIntermediateOutputPathForCodeBehind>true</ReqnrollUseIntermediateOutputPathForCodeBehind>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../src/Inventory/Inventory.csproj" ReferenceOutputAssembly="false" Private="false" OutputItemType="TadaSutOutput" />
+    <PackageReference Include="Reqnroll.MSTest" Version="[3.3.4]" />
+    <PackageReference Include="Reqnroll" Version="[3.3.4]" />
+    <PackageReference Include="Reqnroll.Tools.MsBuild.Generation" Version="[3.3.4]" />
+    <None Update="reqnroll.json" CopyToOutputDirectory="PreserveNewest" />
+    <ReqnrollFeatureFile Include="../features/*.feature" Link="Features/%(Filename)%(Extension)" />
+  </ItemGroup>
+  <Import Project="Tada.Acceptance.targets" />
+</Project>
